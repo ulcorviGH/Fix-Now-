@@ -50,4 +50,47 @@ class Vista
              . 'justify-content-center fw-bold" style="' . $estilo . 'font-size:' . ($tamano / 2.5) . 'px;">'
              . self::e($iniciales) . '</div>';
     }
+
+    // -----------------------------------------------------------------
+    // Fase 5
+    // -----------------------------------------------------------------
+
+    /** Campo oculto con el código CSRF; va dentro de todo <form method="post">. */
+    public static function campoCsrf(): string
+    {
+        return '<input type="hidden" name="csrf" value="' . self::e(Sesion::csrfToken()) . '">';
+    }
+
+    /** Fecha y hora legibles: 08/10/2026 14:30 */
+    public static function fecha(?string $fecha): string
+    {
+        return $fecha ? date('d/m/Y H:i', strtotime($fecha)) : '';
+    }
+
+    /** Dirección de la página actual (sin la barra inicial), para volver a ella tras una acción. */
+    public static function urlActual(): string
+    {
+        return ltrim($_SERVER['REQUEST_URI'] ?? '', '/');
+    }
+
+    /**
+     * Dibuja un botón que envía una acción a public/accion.php
+     * (aceptar, rechazar, contratar, etc.). $confirmar: texto opcional
+     * para pedir confirmación antes de enviar.
+     */
+    public static function formAccion(string $accion, int $idSolicitud, string $texto,
+                                      string $clase = 'btn-primary btn-sm', string $confirmar = ''): string
+    {
+        $onsubmit = $confirmar !== ''
+            ? ' onsubmit="return confirm(\'' . self::e(addslashes($confirmar)) . '\');"'
+            : '';
+
+        return '<form method="post" action="accion.php" class="d-inline"' . $onsubmit . '>'
+             . self::campoCsrf()
+             . '<input type="hidden" name="accion" value="' . self::e($accion) . '">'
+             . '<input type="hidden" name="id_solicitud" value="' . $idSolicitud . '">'
+             . '<input type="hidden" name="volver" value="' . self::e(self::urlActual()) . '">'
+             . '<button type="submit" class="btn ' . self::e($clase) . '">' . self::e($texto) . '</button>'
+             . '</form>';
+    }
 }

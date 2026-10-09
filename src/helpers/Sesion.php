@@ -26,6 +26,8 @@ class Sesion
      */
     public static function login(array $usuario): void
     {
+        // Cambia el id de sesión al loguearse (evita "fijación de sesión").
+        session_regenerate_id(true);
         $_SESSION['id_usuario'] = $usuario['id_usuario'];
         $_SESSION['nombre'] = $usuario['nombre'];
         $_SESSION['rol'] = $usuario['rol']; // 'cliente' | 'trabajador' | 'admin'
@@ -80,5 +82,45 @@ class Sesion
             header('Location: index.php');
             exit;
         }
+    }
+
+    // -----------------------------------------------------------------
+    // Fase 5: mensajes "flash" (se muestran UNA vez y desaparecen)
+    // -----------------------------------------------------------------
+
+    /** Guarda un aviso para mostrarlo en la próxima página. $tipo: success | danger | info | warning */
+    public static function flash(string $tipo, string $mensaje): void
+    {
+        $_SESSION['flash'] = ['tipo' => $tipo, 'mensaje' => $mensaje];
+    }
+
+    /** Devuelve el aviso guardado (y lo borra para que no se repita). */
+    public static function tomarFlash(): ?array
+    {
+        $flash = $_SESSION['flash'] ?? null;
+        unset($_SESSION['flash']);
+        return $flash;
+    }
+
+    // -----------------------------------------------------------------
+    // Fase 5: protección CSRF
+    // Un formulario malicioso en OTRA página podría intentar enviar
+    // acciones en tu nombre (ej. aceptar una solicitud). Cada formulario
+    // lleva un código secreto de la sesión; si no coincide, se rechaza.
+    // -----------------------------------------------------------------
+
+    public static function csrfToken(): string
+    {
+        if (empty($_SESSION['csrf'])) {
+            $_SESSION['csrf'] = bin2hex(random_bytes(32));
+        }
+        return $_SESSION['csrf'];
+    }
+
+    public static function csrfValido(?string $token): bool
+    {
+        return $token !== null
+            && !empty($_SESSION['csrf'])
+            && hash_equals($_SESSION['csrf'], $token);
     }
 }

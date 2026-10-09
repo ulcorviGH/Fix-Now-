@@ -91,6 +91,10 @@ CREATE TABLE SOLICITUD (
     fecha_confirmacion_trabajo    DATETIME NULL,  -- dispara el contador de 2 días (CU-21)
     confirmado_cliente            BOOLEAN NOT NULL DEFAULT FALSE,
     confirmado_trabajador         BOOLEAN NOT NULL DEFAULT FALSE,
+    -- Fase 5: cuándo volver a preguntar "¿ya se completó el trabajo?" a cada parte
+    -- después de un "Todavía no" (CU-21 pasos 6-7). NULL = preguntar normalmente.
+    posponer_cliente_hasta        DATETIME NULL,
+    posponer_trabajador_hasta     DATETIME NULL,
     FOREIGN KEY (id_usuario) REFERENCES USUARIO(id_usuario) ON DELETE CASCADE,
     FOREIGN KEY (id_trabajador) REFERENCES TRABAJADOR(id_trabajador) ON DELETE CASCADE
 ) ENGINE=InnoDB;

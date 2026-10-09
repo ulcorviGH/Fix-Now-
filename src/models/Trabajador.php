@@ -231,4 +231,27 @@ class Trabajador
         $fila = $consulta->fetch();
         return $fila ?: null;
     }
+
+    // =====================================================================
+    // FASE 5 - Apoyo para solicitudes y chats
+    // =====================================================================
+
+    /** id_trabajador de un usuario con rol trabajador (null si no tiene perfil). */
+    public function obtenerIdPorUsuario(int $idUsuario): ?int
+    {
+        $consulta = $this->pdo->prepare('SELECT id_trabajador FROM TRABAJADOR WHERE id_usuario = ? LIMIT 1');
+        $consulta->execute([$idUsuario]);
+        $id = $consulta->fetchColumn();
+        return $id !== false ? (int) $id : null;
+    }
+
+    /** true si el trabajador ofrece sus servicios en esa localidad (precondición de CU-06). */
+    public function cubreLocalidad(int $idTrabajador, int $idLocalidad): bool
+    {
+        $consulta = $this->pdo->prepare(
+            'SELECT 1 FROM TRABAJADOR_LOCALIDAD WHERE id_trabajador = ? AND id_localidad = ? LIMIT 1'
+        );
+        $consulta->execute([$idTrabajador, $idLocalidad]);
+        return $consulta->fetchColumn() !== false;
+    }
 }

@@ -13,7 +13,7 @@ Práctica Profesionalizante 2 — Corvi Ulises
 - [x] Fase 2 – Base de datos (11 tablas)
 - [x] Fase 3 – Registro e inicio de sesión (CU-01, CU-02)
 - [x] Fase 4 – Búsqueda y perfil de trabajador (CU-03, CU-04)
-- [ ] Fase 5 – Chat y contratación (CU-06, CU-08, CU-21, CU-22)
+- [x] Fase 5 – Contacto, chat y contratación (CU-06, CU-08, CU-11, CU-21, CU-22)
 - [ ] Fase 6 – Calificaciones (CU-07, CU-12, CU-20)
 - [ ] Fase 7 – Panel de administrador (CU-13 a CU-19)
 
@@ -42,6 +42,16 @@ Esperar antes de abrir el sitio.
 
 Los scripts `database/01_init.sql`, `02_admin_prueba.sql` y `03_datos_prueba.sql`
 se ejecutan automáticamente, en ese orden, SOLO cuando la base se crea desde cero.
+
+## Cómo probar el flujo de la Fase 5
+
+1. Cliente (`cliente@fixnow.com`): buscar → perfil de Carlos → **Enviar mensaje**.
+2. Trabajador (`trabajador@fixnow.com`, en otra ventana o en incógnito): **Solicitudes** → Aceptar.
+3. Los dos entran al **chat** y se escriben (los mensajes llegan solos cada 4 segundos).
+4. Cliente: **Contratar trabajador**. Trabajador: Solicitudes → *Solicitudes de trabajo* → Aceptar.
+5. La pregunta "¿Ya se completó el trabajo?" aparece a los 2 días. Para probarla ya,
+   en `src/config/Config.php` poné `DIAS_PRIMERA_PREGUNTA = 0` (y volvelo a 2 después).
+6. Cuando ambos confirman, el trabajo suma a "Trabajos completados" del perfil.
 
 ## Comandos útiles
 

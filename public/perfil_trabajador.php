@@ -13,6 +13,12 @@ Sesion::requerirRol('cliente');
 // así nadie puede inyectar texto malicioso por acá.
 $idTrabajador = (int) ($_GET['id'] ?? 0);
 $perfil = $idTrabajador > 0 ? PerfilController::obtener($idTrabajador) : null;
+
+// Fase 5: ¿ya hay una solicitud o un chat en curso con este trabajador?
+// Si lo hay, el botón cambia a "Ir al chat" / "Solicitud pendiente".
+$vigente = $perfil !== null
+    ? (new Solicitud(Database::getConexion()))->vigenteEntre(Sesion::idUsuarioActual(), $idTrabajador)
+    : null;
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -53,10 +59,15 @@ $perfil = $idTrabajador > 0 ? PerfilController::obtener($idTrabajador) : null;
                     <div class="small mt-1">✔ Trabajos completados: <strong><?= (int) $perfil['trabajos_completados'] ?></strong></div>
                 </div>
                 <div>
-                    <!-- El contacto se construye en la Fase 5 (CU-06). -->
-                    <button class="btn btn-primary" disabled
-                            title="Disponible en la próxima fase">Enviar mensaje</button>
-                    <div class="form-text">Disponible próximamente</div>
+                    <!-- CU-04 paso 3a: 'Enviar mensaje' inicia CU-06 -->
+                    <?php if ($vigente === null): ?>
+                        <a href="contactar.php?id=<?= $idTrabajador ?>" class="btn btn-primary">Enviar mensaje</a>
+                    <?php elseif ($vigente['estado_contacto'] === 'aceptada'): ?>
+                        <a href="chat.php?id=<?= (int) $vigente['id_solicitud'] ?>" class="btn btn-success">Ir al chat</a>
+                    <?php else: ?>
+                        <button class="btn btn-outline-secondary" disabled>Solicitud pendiente</button>
+                        <div class="form-text">Esperando respuesta del trabajador</div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
