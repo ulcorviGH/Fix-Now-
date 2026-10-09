@@ -1,0 +1,24 @@
+# .gitignore
+# ---------------------------------------------------------------------------
+# Le dice a Git qué archivos y carpetas NUNCA debe subir a GitHub.
+# ---------------------------------------------------------------------------
+
+# Contraseñas y configuración local: jamás se comparten
+.env
+
+# Archivos que genera el sistema operativo
+.DS_Store
+Thumbs.db
+
+# Carpeta de dependencias de PHP (si más adelante usamos Composer)
+/vendor/
+
+# Fotos subidas por los usuarios: no son "código", no deben ir al repo
+/public/assets/img/perfiles/*
+/public/assets/img/portfolio/*
+!/public/assets/img/perfiles/.gitkeep
+!/public/assets/img/portfolio/.gitkeep
+
+# Archivos temporales de VS Code
+.vscode/*
+!.vscode/extensions.json

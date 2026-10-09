@@ -1,0 +1,18 @@
+/* public/assets/css/estilos.css
+   ---------------------------------------------------------------------
+   Estilos propios de FixNow, además de los que ya trae Bootstrap.
+   --------------------------------------------------------------------- */
+
+body {
+    font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+}
+
+/* Tarjetas de trabajadores (lista de CU-03): se elevan al pasar el mouse */
+.tarjeta-trabajador {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tarjeta-trabajador:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15) !important;
+}

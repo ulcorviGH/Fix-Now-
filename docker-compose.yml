@@ -1,0 +1,72 @@
+# docker-compose.yml
+# ---------------------------------------------------------------------------
+# Este archivo define los "contenedores" (mini-computadoras aisladas) que
+# forman el entorno de desarrollo de FixNow. Con un solo comando
+# ( docker compose up ) se levantan los 3 servicios de abajo, ya conectados
+# entre sí, sin instalar PHP ni MySQL directamente en tu computadora.
+# ---------------------------------------------------------------------------
+
+services:
+
+  # ---------------------------------------------------------------------
+  # SERVICIO 1: app -> Apache + PHP 8 (el "servidor web" que corre FixNow)
+  # ---------------------------------------------------------------------
+  app:
+    build:
+      context: ./docker/php        # usa el Dockerfile que está en esa carpeta
+    container_name: fixnow_app
+    ports:
+      - "8080:80"                  # navegador -> localhost:8080 -> puerto 80 del contenedor
+    volumes:
+      # Sincroniza la carpeta del proyecto en tu PC con la del contenedor.
+      # Así, cuando editás un archivo en VS Code, el cambio se ve al instante
+      # sin tener que reconstruir nada.
+      - ./:/var/www/html
+    depends_on:
+      - db                         # espera a que la base de datos esté lista
+    environment:
+      DB_HOST: db                  # "db" es el nombre del servicio de MySQL de más abajo
+      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: ${MYSQL_USER}
+      DB_PASS: ${MYSQL_PASSWORD}
+
+  # ---------------------------------------------------------------------
+  # SERVICIO 2: db -> Base de datos MySQL
+  # ---------------------------------------------------------------------
+  db:
+    image: mysql:8.0
+    container_name: fixnow_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3307:3306"                 # por si querés conectarte con un programa externo (ej. DBeaver)
+    volumes:
+      - db_data:/var/lib/mysql       # guarda los datos aunque se apague el contenedor
+      # Todo archivo .sql en esta carpeta se ejecuta AUTOMÁTICAMENTE
+      # la primera vez que se crea la base de datos (crea las tablas solo).
+      - ./database:/docker-entrypoint-initdb.d
+
+  # ---------------------------------------------------------------------
+  # SERVICIO 3: phpmyadmin -> interfaz visual para ver/editar la base de datos
+  # ---------------------------------------------------------------------
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: fixnow_phpmyadmin
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      PMA_HOST: db
+      PMA_USER: ${MYSQL_USER}
+      PMA_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "8081:80"                   # se accede desde localhost:8081
+
+# Volumen nombrado: es un "disco virtual" que Docker administra para que
+# los datos de MySQL persistan aunque borres y vuelvas a crear el contenedor.
+volumes:
+  db_data:
