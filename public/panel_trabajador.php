@@ -13,6 +13,7 @@ Sesion::requerirRol('trabajador');
 $pdo = Database::getConexion();
 $idTrabajador = (new Trabajador($pdo))->obtenerIdPorUsuario(Sesion::idUsuarioActual());
 $pendientes = $idTrabajador ? (new Solicitud($pdo))->contarPendientes($idTrabajador) : ['contactos' => 0, 'trabajos' => 0];
+$resumen = $idTrabajador ? (new Calificacion($pdo))->resumen($idTrabajador) : ['promedio' => null, 'cantidad' => 0];
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -47,6 +48,16 @@ $pendientes = $idTrabajador ? (new Solicitud($pdo))->contarPendientes($idTrabaja
                     <div class="card-body">
                         <div class="display-6"><?= (int) $pendientes['trabajos'] ?></div>
                         <div class="text-muted">pedidos de trabajo por responder</div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-6">
+            <a href="mis_calificaciones.php" class="text-decoration-none text-reset">
+                <div class="card shadow-sm tarjeta-trabajador h-100">
+                    <div class="card-body">
+                        <div class="fs-3"><?= Vista::estrellas($resumen['promedio']) ?></div>
+                        <div class="text-muted"><?= (int) $resumen['cantidad'] ?> calificaciones recibidas</div>
                     </div>
                 </div>
             </a>

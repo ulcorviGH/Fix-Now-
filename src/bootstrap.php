@@ -31,6 +31,7 @@ require_once __DIR__ . '/controllers/BusquedaController.php';  // (Fase 4)
 require_once __DIR__ . '/controllers/PerfilController.php';    // (Fase 4)
 require_once __DIR__ . '/controllers/SolicitudController.php'; // (Fase 5)
 require_once __DIR__ . '/controllers/ChatController.php';      // (Fase 5)
+require_once __DIR__ . '/controllers/CalificacionController.php'; // (Fase 6)
 
 // Arranca la sesión de PHP para toda la aplicación.
 Sesion::iniciar();

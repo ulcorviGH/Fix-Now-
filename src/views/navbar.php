@@ -39,6 +39,7 @@ $totalPendientesNav = (int) $pendientesNav['contactos'] + (int) $pendientesNav['
             <?php if ($rolNav === 'cliente'): ?>
                 <li class="nav-item"><a class="nav-link" href="panel_cliente.php">Buscar</a></li>
                 <li class="nav-item"><a class="nav-link" href="chats.php">Mis chats</a></li>
+                <li class="nav-item"><a class="nav-link" href="mis_trabajos.php">Mis trabajos</a></li>
             <?php elseif ($rolNav === 'trabajador'): ?>
                 <li class="nav-item">
                     <a class="nav-link" href="solicitudes.php">
@@ -49,6 +50,7 @@ $totalPendientesNav = (int) $pendientesNav['contactos'] + (int) $pendientesNav['
                     </a>
                 </li>
                 <li class="nav-item"><a class="nav-link" href="chats.php">Chats</a></li>
+                <li class="nav-item"><a class="nav-link" href="mis_calificaciones.php">Mis calificaciones</a></li>
             <?php endif; ?>
         </ul>
 

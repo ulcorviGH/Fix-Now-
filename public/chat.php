@@ -64,7 +64,16 @@ if ($chat !== null) {
     <!-- ============ ESTADO DEL TRABAJO (CU-21 / CU-22) ============ -->
     <div class="card card-body shadow-sm mb-3">
         <?php if ($finalizado): ?>
-            <div>✅ <strong>Trabajo terminado.</strong> Ambas partes lo confirmaron.</div>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <div class="flex-grow-1">✅ <strong>Trabajo terminado.</strong> Ambas partes lo confirmaron.</div>
+                <?php if ($soyCliente && $chat['id_calificacion'] === null): ?>
+                    <a href="calificar.php?id=<?= $idSolicitud ?>" class="btn btn-warning btn-sm">★ Calificar al trabajador</a>
+                <?php elseif ($soyCliente): ?>
+                    <span class="badge text-bg-secondary">Ya calificaste este trabajo</span>
+                <?php elseif ($chat['id_calificacion'] !== null): ?>
+                    <a href="mis_calificaciones.php" class="btn btn-outline-primary btn-sm">Ver la calificación</a>
+                <?php endif; ?>
+            </div>
 
         <?php elseif ($estadoTrabajo === 'no_solicitado'): ?>
             <?php if ($soyCliente): ?>

@@ -58,3 +58,31 @@ body {
     opacity: .7;
     text-align: right;
 }
+
+/* ------------------------------------------------------------------
+   Selector de estrellas del formulario de calificación (CU-07)
+   Truco: las opciones están en el HTML de 5 a 1 y se muestran al revés
+   (row-reverse), así al elegir una se iluminan también todas las menores.
+   ------------------------------------------------------------------ */
+.estrellas-input {
+    display: inline-flex;
+    flex-direction: row-reverse;
+    gap: .25rem;
+}
+
+.estrellas-input input {
+    display: none;
+}
+
+.estrellas-input label {
+    font-size: 2.4rem;
+    line-height: 1;
+    color: #ced4da;
+    cursor: pointer;
+}
+
+.estrellas-input input:checked ~ label,
+.estrellas-input label:hover,
+.estrellas-input label:hover ~ label {
+    color: #ffc107;
+}

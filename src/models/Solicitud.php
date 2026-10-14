@@ -43,7 +43,9 @@ class Solicitud
                        ut.apellido AS trabajador_apellido,
                        (SELECT m.contenido FROM MENSAJE m
                          WHERE m.id_solicitud = s.id_solicitud
-                         ORDER BY m.id_mensaje DESC LIMIT 1) AS ultimo_mensaje
+                         ORDER BY m.id_mensaje DESC LIMIT 1) AS ultimo_mensaje,
+                       (SELECT cal.id_calificacion FROM CALIFICACION cal
+                         WHERE cal.id_solicitud = s.id_solicitud) AS id_calificacion
                   FROM SOLICITUD s
                   JOIN USUARIO uc ON uc.id_usuario = s.id_usuario
                   JOIN TRABAJADOR t ON t.id_trabajador = s.id_trabajador
@@ -164,10 +166,17 @@ class Solicitud
     {
         $dias = (int) Config::DIAS_PRIMERA_PREGUNTA;
 
+        // Condición de "ya corresponde preguntar": pasaron los días configurados...
+        $pasaronLosDias = "NOW() >= DATE_ADD(s.fecha_confirmacion_trabajo, INTERVAL {$dias} DAY)";
+
         if ($rol === 'cliente') {
             $dueno = 's.id_usuario';
             $confirmado = 's.confirmado_cliente';
             $posponer = 's.posponer_cliente_hasta';
+            // ...o el trabajador YA marcó el trabajo como terminado (CU-22: "o si el
+            // cliente confirma antes"). Sin esto el cliente esperaría 2 días para
+            // poder confirmar algo que el trabajador ya declaró terminado.
+            $pasaronLosDias = "({$pasaronLosDias} OR s.confirmado_trabajador = TRUE)";
         } else {
             $dueno = 't.id_usuario';
             $confirmado = 's.confirmado_trabajador';
@@ -178,7 +187,7 @@ class Solicitud
             $this->base() . " WHERE {$dueno} = ?
                 AND s.estado_trabajo = 'aceptado'
                 AND {$confirmado} = FALSE
-                AND NOW() >= DATE_ADD(s.fecha_confirmacion_trabajo, INTERVAL {$dias} DAY)
+                AND {$pasaronLosDias}
                 AND ({$posponer} IS NULL OR NOW() >= {$posponer})
               ORDER BY s.fecha_confirmacion_trabajo ASC"
         );
@@ -281,5 +290,35 @@ class Solicitud
         return $parte === 'cliente'
             ? ['confirmado_cliente', 'posponer_cliente_hasta']
             : ['confirmado_trabajador', 'posponer_trabajador_hasta'];
+    }
+
+    // =====================================================================
+    // FASE 6 - Calificaciones
+    // =====================================================================
+
+    /**
+     * Trabajos del cliente (los que el trabajador aceptó), para la pantalla
+     * "Mis trabajos" (CU-07 paso 1). 'id_calificacion' viene NULL si todavía
+     * no los calificó.
+     */
+    public function listarTrabajosDeCliente(int $idUsuarioCliente): array
+    {
+        $consulta = $this->pdo->prepare(
+            $this->base() . " WHERE s.id_usuario = ? AND s.estado_trabajo = 'aceptado'
+                              ORDER BY s.id_solicitud DESC"
+        );
+        $consulta->execute([$idUsuarioCliente]);
+        return $consulta->fetchAll();
+    }
+
+    /** Trabajos completados = solicitudes con doble confirmación (no es un campo guardado). */
+    public function contarCompletados(int $idTrabajador): int
+    {
+        $consulta = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM SOLICITUD
+              WHERE id_trabajador = ? AND confirmado_cliente = TRUE AND confirmado_trabajador = TRUE'
+        );
+        $consulta->execute([$idTrabajador]);
+        return (int) $consulta->fetchColumn();
     }
 }
