@@ -36,6 +36,12 @@ CREATE TABLE USUARIO (
     id_localidad   INT,
     fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
     estado         ENUM('activo','pendiente','bloqueado') NOT NULL DEFAULT 'activo',
+    -- Fase 7 (CU-02 excepción 3.2): bloqueo TEMPORAL tras varios intentos fallidos.
+    -- Es distinto de estado='bloqueado', que lo decide el Administrador (CU-13).
+    intentos_fallidos TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    bloqueado_hasta   DATETIME NULL,
+    -- Fase 7 (CU-16): fecha del último inicio de sesión, para "usuarios activos último mes".
+    ultimo_acceso     DATETIME NULL,
     FOREIGN KEY (id_localidad) REFERENCES LOCALIDAD(id_localidad)
 ) ENGINE=InnoDB;
 
@@ -51,6 +57,8 @@ CREATE TABLE TRABAJADOR (
     anios_experiencia   TINYINT,
     estado_habilitacion ENUM('pendiente','habilitado','rechazado') NOT NULL DEFAULT 'pendiente',
     foto_perfil         VARCHAR(255),
+    -- Fase 7 (CU-18): por qué el Administrador rechazó la cuenta (se muestra al intentar entrar)
+    motivo_rechazo      VARCHAR(255) NULL,
     FOREIGN KEY (id_usuario) REFERENCES USUARIO(id_usuario) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
@@ -91,6 +99,11 @@ CREATE TABLE SOLICITUD (
     fecha_confirmacion_trabajo    DATETIME NULL,  -- dispara el contador de 2 días (CU-21)
     confirmado_cliente            BOOLEAN NOT NULL DEFAULT FALSE,
     confirmado_trabajador         BOOLEAN NOT NULL DEFAULT FALSE,
+    -- Fase 7 (CU-14): cuántas calificaciones de este trabajo eliminó el Administrador.
+    -- La reseña se borra, pero este contador queda, y permite aplicar la regla:
+    -- 1ra baja -> el cliente puede volver a calificar; 2da baja (sumando todos sus
+    -- trabajos con ese mismo trabajador) -> ya no puede calificarlo más.
+    calificaciones_eliminadas     TINYINT UNSIGNED NOT NULL DEFAULT 0,
     -- Fase 5: cuándo volver a preguntar "¿ya se completó el trabajo?" a cada parte
     -- después de un "Todavía no" (CU-21 pasos 6-7). NULL = preguntar normalmente.
     posponer_cliente_hasta        DATETIME NULL,
@@ -124,6 +137,7 @@ CREATE TABLE SERVICIO (
     nombre          VARCHAR(100) NOT NULL,
     descripcion     TEXT,
     estado_revision ENUM('pendiente','aprobado','rechazado') NOT NULL DEFAULT 'pendiente',
+    motivo_rechazo  VARCHAR(255) NULL,   -- Fase 7 (CU-19): motivo que ve el trabajador
     FOREIGN KEY (id_trabajador) REFERENCES TRABAJADOR(id_trabajador) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
@@ -140,6 +154,11 @@ CREATE TABLE CALIFICACION (
     comentario      TEXT,
     fecha           DATETIME DEFAULT CURRENT_TIMESTAMP,
     reportada       BOOLEAN NOT NULL DEFAULT FALSE,  -- marca para moderación (CU-14)
+    -- Fase 7 (CU-14): motivo que escribió el trabajador al reportar la reseña.
+    -- Regla: una reseña solo se puede reportar UNA vez (mientras motivo_reporte sea NULL).
+    --   reportada=TRUE  y motivo cargado -> esperando revisión del Administrador
+    --   reportada=FALSE y motivo cargado -> el Administrador la revisó y la mantuvo
+    motivo_reporte  VARCHAR(255) NULL,
     FOREIGN KEY (id_solicitud) REFERENCES SOLICITUD(id_solicitud) ON DELETE CASCADE,
     FOREIGN KEY (id_usuario) REFERENCES USUARIO(id_usuario) ON DELETE CASCADE,
     FOREIGN KEY (id_trabajador) REFERENCES TRABAJADOR(id_trabajador) ON DELETE CASCADE,
@@ -168,6 +187,7 @@ CREATE TABLE IMAGEN (
     url             VARCHAR(255) NOT NULL,
     estado_revision ENUM('pendiente','aprobada','rechazada') NOT NULL DEFAULT 'pendiente',
     fecha_subida    DATETIME DEFAULT CURRENT_TIMESTAMP,
+    motivo_rechazo  VARCHAR(255) NULL,   -- Fase 7 (CU-19): motivo que ve el trabajador
     FOREIGN KEY (id_trabajador) REFERENCES TRABAJADOR(id_trabajador) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 

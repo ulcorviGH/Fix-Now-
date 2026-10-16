@@ -1,7 +1,8 @@
 <?php
 // public/mis_calificaciones.php
 // ---------------------------------------------------------------------------
-// CU-12 "Ver calificaciones recibidas" + CU-20 "Responder a comentarios".
+// CU-12 "Ver calificaciones recibidas" + CU-20 "Responder a comentarios"
+// + (Fase 7) CU-14: el trabajador puede REPORTAR una reseña inapropiada.
 // El trabajador ve su puntaje, la cantidad de trabajos completados y cada
 // reseña; en cada una puede publicar (o editar) una respuesta pública.
 // ---------------------------------------------------------------------------
@@ -18,11 +19,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Sesion::csrfValido($_POST['csrf'] ?? null)) {
         Sesion::flash('danger', 'El formulario venció. Intentá de nuevo.');
     } else {
-        $resultado = CalificacionController::responder(
-            $idUsuario,
-            (int) ($_POST['id_calificacion'] ?? 0),
-            $_POST['contenido'] ?? ''
-        );
+        // Fase 7: el mismo formulario-página maneja dos acciones: responder (CU-20) y reportar (CU-14).
+        if (($_POST['accion'] ?? 'responder') === 'reportar') {
+            $resultado = CalificacionController::reportar(
+                $idUsuario,
+                (int) ($_POST['id_calificacion'] ?? 0),
+                $_POST['motivo'] ?? ''
+            );
+        } else {
+            $resultado = CalificacionController::responder(
+                $idUsuario,
+                (int) ($_POST['id_calificacion'] ?? 0),
+                $_POST['contenido'] ?? ''
+            );
+        }
         Sesion::flash($resultado['exito'] ? 'success' : 'danger', $resultado['mensaje']);
     }
     header('Location: mis_calificaciones.php');
@@ -108,9 +118,33 @@ $panel = CalificacionController::panelDelTrabajador($idUsuario);
                         <?= $tieneRespuesta ? 'Editar respuesta' : 'Responder' ?>
                     </button>
 
+                    <!-- Fase 7 - CU-14: reportar. Solo una vez por reseña. -->
+                    <?php if ($r['reportada']): ?>
+                        <span class="badge text-bg-warning ms-1">Reportada · en revisión</span>
+                    <?php elseif ($r['motivo_reporte'] !== null): ?>
+                        <span class="badge text-bg-secondary ms-1">Revisada por el administrador: se mantiene</span>
+                    <?php else: ?>
+                        <button class="btn btn-outline-danger btn-sm ms-1" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#rep-<?= $id ?>">Reportar</button>
+                    <?php endif; ?>
+
+                    <?php if ($r['motivo_reporte'] === null): ?>
+                        <div class="collapse mt-3" id="rep-<?= $id ?>">
+                            <form method="post" onsubmit="return confirm('¿Reportar esta calificación al administrador?');">
+                                <?= Vista::campoCsrf() ?>
+                                <input type="hidden" name="accion" value="reportar">
+                                <input type="hidden" name="id_calificacion" value="<?= $id ?>">
+                                <input type="text" name="motivo" class="form-control mb-2" maxlength="255" required
+                                       placeholder="¿Por qué la reportás? (ej: lenguaje ofensivo)">
+                                <button type="submit" class="btn btn-danger btn-sm">Enviar reporte</button>
+                            </form>
+                        </div>
+                    <?php endif; ?>
+
                     <div class="collapse mt-3" id="resp-<?= $id ?>">
                         <form method="post">
                             <?= Vista::campoCsrf() ?>
+                            <input type="hidden" name="accion" value="responder">
                             <input type="hidden" name="id_calificacion" value="<?= $id ?>">
                             <textarea name="contenido" class="form-control mb-2" rows="3" maxlength="1000"
                                       placeholder="Escribí tu respuesta pública" required><?= Vista::e($r['respuesta'] ?? '') ?></textarea>

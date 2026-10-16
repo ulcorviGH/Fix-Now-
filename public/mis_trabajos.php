@@ -35,7 +35,12 @@ $trabajos = (new Solicitud(Database::getConexion()))->listarTrabajosDeCliente(Se
         </div>
     <?php else: ?>
         <?php foreach ($trabajos as $t): ?>
-            <?php $terminado = (bool) $t['confirmado_cliente'] && (bool) $t['confirmado_trabajador']; ?>
+            <?php
+            $terminado = (bool) $t['confirmado_cliente'] && (bool) $t['confirmado_trabajador'];
+            // Fase 7 (CU-14): ¿el admin ya le eliminó demasiadas calificaciones hacia este trabajador?
+            $bloqueadoCalificar = $terminado && $t['id_calificacion'] === null
+                && !CalificacionController::evaluarElegibilidad(Sesion::idUsuarioActual(), (int) $t['id_solicitud'])['puede'];
+            ?>
             <div class="card shadow-sm mb-3">
                 <div class="card-body d-flex flex-wrap align-items-center gap-2">
                     <div class="flex-grow-1">
@@ -47,7 +52,10 @@ $trabajos = (new Solicitud(Database::getConexion()))->listarTrabajosDeCliente(Se
                         </div>
                     </div>
 
-                    <?php if ($terminado && $t['id_calificacion'] === null): ?>
+                    <?php if ($bloqueadoCalificar): ?>
+                        <span class="badge text-bg-secondary">No podés calificar a este trabajador</span>
+
+                    <?php elseif ($terminado && $t['id_calificacion'] === null): ?>
                         <!-- CU-07 paso 1: la opción "Calificar" se habilita solo con doble confirmación -->
                         <a href="calificar.php?id=<?= (int) $t['id_solicitud'] ?>" class="btn btn-warning btn-sm">★ Calificar</a>
 

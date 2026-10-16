@@ -127,7 +127,34 @@ class AuthController
         // OJO: usamos el mismo mensaje tanto si el mail no existe como si
         // la contraseña está mal, para no darle pistas a un atacante sobre
         // qué mails están registrados.
-        if ($usuario === null || !password_verify($contrasena, $usuario['contrasena'])) {
+        if ($usuario === null) {
+            return ['exito' => false, 'mensaje' => 'Mail o contraseña incorrectos.', 'usuario' => null];
+        }
+        $idUsuario = (int) $usuario['id_usuario'];
+
+        // Excepción 3.2 (Fase 7): la cuenta está bloqueada TEMPORALMENTE por
+        // demasiados intentos fallidos. Se avisa antes de mirar la contraseña:
+        // mientras dura el bloqueo no se acepta ni la contraseña correcta.
+        // (Esto revela que el mail existe; es el costo habitual de este tipo de bloqueo.)
+        $minutos = $modeloUsuario->minutosDeBloqueoRestantes($idUsuario);
+        if ($minutos > 0) {
+            return ['exito' => false, 'usuario' => null,
+                    'mensaje' => 'Cuenta bloqueada temporalmente por demasiados intentos fallidos. '
+                               . 'Probá de nuevo en ' . $minutos . ' minuto' . ($minutos === 1 ? '' : 's') . '.'];
+        }
+
+        if (!password_verify($contrasena, $usuario['contrasena'])) {
+            // Cuenta el intento fallido; al llegar al límite se bloquea y se avisa.
+            if (Config::MINUTOS_BLOQUEO_LOGIN > 0) {
+                $intentos = (int) $usuario['intentos_fallidos'] + 1;
+                if ($intentos >= Config::MAX_INTENTOS_LOGIN) {
+                    $modeloUsuario->bloquearTemporalmente($idUsuario, Config::MINUTOS_BLOQUEO_LOGIN);
+                    return ['exito' => false, 'usuario' => null,
+                            'mensaje' => 'Superaste los ' . Config::MAX_INTENTOS_LOGIN . ' intentos permitidos. '
+                                       . 'Tu cuenta quedó bloqueada por ' . Config::MINUTOS_BLOQUEO_LOGIN . ' minutos.'];
+                }
+                $modeloUsuario->guardarIntentosFallidos($idUsuario, $intentos);
+            }
             return ['exito' => false, 'mensaje' => 'Mail o contraseña incorrectos.', 'usuario' => null];
         }
 
@@ -136,10 +163,19 @@ class AuthController
             return ['exito' => false, 'mensaje' => 'Cuenta suspendida. Contacte al administrador.', 'usuario' => null];
         }
 
-        // Excepción 3.3: trabajador todavía no habilitado.
+        // Excepción 3.3: trabajador todavía no habilitado (o rechazado, CU-18 paso 9b).
         if ($usuario['rol'] === 'trabajador' && $usuario['estado'] === 'pendiente') {
+            $habilitacion = (new Trabajador($pdo))->estadoHabilitacionDeUsuario($idUsuario);
+            if ($habilitacion !== null && $habilitacion['estado_habilitacion'] === 'rechazado') {
+                $motivo = trim((string) $habilitacion['motivo_rechazo']);
+                return ['exito' => false, 'usuario' => null,
+                        'mensaje' => 'Tu cuenta no fue habilitada.' . ($motivo !== '' ? ' Motivo: ' . $motivo : '')];
+            }
             return ['exito' => false, 'mensaje' => 'Tu cuenta está siendo revisada por el administrador.', 'usuario' => null];
         }
+
+        // Login correcto: se reinicia el contador de intentos y se anota el último acceso.
+        $modeloUsuario->registrarLoginExitoso($idUsuario);
 
         // Camino feliz: credenciales válidas y cuenta en condiciones de entrar.
         return ['exito' => true, 'mensaje' => '', 'usuario' => $usuario];

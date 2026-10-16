@@ -30,7 +30,8 @@ function formatear(array $m, int $miId): array
     ];
 }
 
-if (!Sesion::estaLogueado()) {
+// Fase 7: sesionVigente() también saca a quien el admin bloqueó o eliminó.
+if (!Sesion::sesionVigente()) {
     responder(['ok' => false, 'error' => 'Sesión vencida. Volvé a iniciar sesión.'], 401);
 }
 

@@ -2,8 +2,7 @@
 // public/panel_trabajador.php
 // ---------------------------------------------------------------------------
 // Pantalla de inicio del Trabajador después de loguearse (CU-02 paso 5).
-// Resume lo pendiente. "Mi perfil", "Mis servicios" y "Mis calificaciones"
-// se agregan en las próximas fases.
+// Resume lo pendiente y enlaza a "Mi perfil" (Fase 7) y "Mis calificaciones".
 // ---------------------------------------------------------------------------
 
 require_once __DIR__ . '/../src/bootstrap.php';
@@ -48,6 +47,16 @@ $resumen = $idTrabajador ? (new Calificacion($pdo))->resumen($idTrabajador) : ['
                     <div class="card-body">
                         <div class="display-6"><?= (int) $pendientes['trabajos'] ?></div>
                         <div class="text-muted">pedidos de trabajo por responder</div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-6">
+            <a href="mi_perfil.php" class="text-decoration-none text-reset">
+                <div class="card shadow-sm tarjeta-trabajador h-100">
+                    <div class="card-body">
+                        <div class="fs-3">👤</div>
+                        <div class="text-muted">Mi perfil: datos, foto, servicios y fotos de trabajos</div>
                     </div>
                 </div>
             </a>

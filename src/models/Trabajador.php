@@ -254,4 +254,143 @@ class Trabajador
         $consulta->execute([$idTrabajador, $idLocalidad]);
         return $consulta->fetchColumn() !== false;
     }
+
+    // =====================================================================
+    // FASE 7 - Perfil propio del trabajador (CU-09)
+    // =====================================================================
+
+    /**
+     * Datos del trabajador para su pantalla "Mi perfil". A diferencia del
+     * perfil público, NO filtra por habilitado: sirve para cualquier trabajador
+     * (el controller decide qué puede hacer según su estado).
+     */
+    public function obtenerParaEdicion(int $idUsuario): ?array
+    {
+        $consulta = $this->pdo->prepare(
+            'SELECT t.id_trabajador, t.oficio, t.descripcion, t.anios_experiencia, t.foto_perfil,
+                    t.estado_habilitacion, u.nombre, u.apellido, u.estado AS estado_usuario
+               FROM TRABAJADOR t
+               JOIN USUARIO u ON u.id_usuario = t.id_usuario
+              WHERE t.id_usuario = ?
+              LIMIT 1'
+        );
+        $consulta->execute([$idUsuario]);
+        $fila = $consulta->fetch();
+        return $fila ?: null;
+    }
+
+    /** Ids de las localidades donde trabaja (para marcar los checkboxes). */
+    public function idsLocalidades(int $idTrabajador): array
+    {
+        $consulta = $this->pdo->prepare('SELECT id_localidad FROM TRABAJADOR_LOCALIDAD WHERE id_trabajador = ?');
+        $consulta->execute([$idTrabajador]);
+        return array_map('intval', $consulta->fetchAll(PDO::FETCH_COLUMN));
+    }
+
+    /** CU-09 paso 5: guarda los datos profesionales. */
+    public function actualizarPerfil(int $idTrabajador, string $oficio, ?string $descripcion, ?int $anios): void
+    {
+        $consulta = $this->pdo->prepare(
+            'UPDATE TRABAJADOR SET oficio = ?, descripcion = ?, anios_experiencia = ? WHERE id_trabajador = ?'
+        );
+        $consulta->execute([$oficio, $descripcion, $anios, $idTrabajador]);
+    }
+
+    /** CU-09 paso 3: reemplaza la lista de zonas (se borran las anteriores y se cargan las nuevas). */
+    public function reemplazarLocalidades(int $idTrabajador, array $idsLocalidades): void
+    {
+        $this->pdo->prepare('DELETE FROM TRABAJADOR_LOCALIDAD WHERE id_trabajador = ?')->execute([$idTrabajador]);
+        $this->asignarLocalidades($idTrabajador, $idsLocalidades);
+    }
+
+    public function actualizarFoto(int $idTrabajador, string $ruta): void
+    {
+        $this->pdo->prepare('UPDATE TRABAJADOR SET foto_perfil = ? WHERE id_trabajador = ?')
+                  ->execute([$ruta, $idTrabajador]);
+    }
+
+    /** Todas las rutas de archivos que subió un usuario (para borrarlas del disco al eliminar su cuenta). */
+    public function rutasDeArchivosDeUsuario(int $idUsuario): array
+    {
+        $consulta = $this->pdo->prepare(
+            'SELECT t.foto_perfil AS ruta FROM TRABAJADOR t WHERE t.id_usuario = ? AND t.foto_perfil IS NOT NULL
+             UNION ALL
+             SELECT i.url FROM IMAGEN i JOIN TRABAJADOR t ON t.id_trabajador = i.id_trabajador WHERE t.id_usuario = ?'
+        );
+        $consulta->execute([$idUsuario, $idUsuario]);
+        return $consulta->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    // =====================================================================
+    // FASE 7 - Habilitación de cuentas por el Administrador (CU-18)
+    // =====================================================================
+
+    /** Trabajadores en estado 'pendiente' o 'rechazado', con los datos que ve el admin al revisar. */
+    public function listarPorEstadoHabilitacion(string $estado): array
+    {
+        $consulta = $this->pdo->prepare(
+            "SELECT t.id_trabajador, u.id_usuario, u.nombre, u.apellido, u.mail, u.fecha_registro,
+                    t.oficio, t.motivo_rechazo,
+                    (SELECT GROUP_CONCAT(l.nombre ORDER BY l.nombre SEPARATOR ', ')
+                       FROM TRABAJADOR_LOCALIDAD tl
+                       JOIN LOCALIDAD l ON l.id_localidad = tl.id_localidad
+                      WHERE tl.id_trabajador = t.id_trabajador) AS localidades
+               FROM TRABAJADOR t
+               JOIN USUARIO u ON u.id_usuario = t.id_usuario
+              WHERE t.estado_habilitacion = ?
+              ORDER BY u.fecha_registro ASC, t.id_trabajador ASC"
+        );
+        $consulta->execute([$estado]);
+        return $consulta->fetchAll();
+    }
+
+    /**
+     * CU-18 paso 7a: habilita la cuenta. Hay que tocar DOS tablas:
+     *   TRABAJADOR.estado_habilitacion = 'habilitado'  y  USUARIO.estado = 'activo'.
+     * Lo llama el controller dentro de una transacción. Parte de 'pendiente'
+     * (o de 'rechazado', si el admin reconsidera). Devuelve false si ya estaba resuelta.
+     */
+    public function habilitar(int $idTrabajador): bool
+    {
+        $consulta = $this->pdo->prepare(
+            "UPDATE TRABAJADOR SET estado_habilitacion = 'habilitado', motivo_rechazo = NULL
+              WHERE id_trabajador = ? AND estado_habilitacion IN ('pendiente', 'rechazado')"
+        );
+        $consulta->execute([$idTrabajador]);
+        if ($consulta->rowCount() === 0) {
+            return false;
+        }
+
+        $this->pdo->prepare(
+            "UPDATE USUARIO SET estado = 'activo'
+              WHERE id_usuario = (SELECT id_usuario FROM TRABAJADOR WHERE id_trabajador = ?)
+                AND estado = 'pendiente'"
+        )->execute([$idTrabajador]);
+        return true;
+    }
+
+    /** CU-18 paso 7b: rechaza la cuenta (queda inactiva) guardando el motivo. Solo desde 'pendiente'. */
+    public function rechazar(int $idTrabajador, string $motivo): bool
+    {
+        $consulta = $this->pdo->prepare(
+            "UPDATE TRABAJADOR SET estado_habilitacion = 'rechazado', motivo_rechazo = ?
+              WHERE id_trabajador = ? AND estado_habilitacion = 'pendiente'"
+        );
+        $consulta->execute([$motivo, $idTrabajador]);
+        return $consulta->rowCount() > 0;
+    }
+
+    /**
+     * Estado de habilitación y motivo de un trabajador, buscado por su usuario.
+     * Lo usa el login para dar el mensaje correcto (CU-02 excepción 3.3 / CU-18 paso 9b).
+     */
+    public function estadoHabilitacionDeUsuario(int $idUsuario): ?array
+    {
+        $consulta = $this->pdo->prepare(
+            'SELECT estado_habilitacion, motivo_rechazo FROM TRABAJADOR WHERE id_usuario = ? LIMIT 1'
+        );
+        $consulta->execute([$idUsuario]);
+        $fila = $consulta->fetch();
+        return $fila ?: null;
+    }
 }

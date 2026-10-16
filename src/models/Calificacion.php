@@ -67,6 +67,7 @@ class Calificacion
     {
         $consulta = $this->pdo->prepare(
             'SELECT c.id_calificacion, c.puntuacion, c.comentario, c.fecha,
+                    c.reportada, c.motivo_reporte,
                     u.nombre AS nombre_cliente, u.apellido AS apellido_cliente,
                     r.contenido AS respuesta
                FROM CALIFICACION c
@@ -114,5 +115,112 @@ class Calificacion
             $consulta = $this->pdo->prepare('INSERT INTO RESPUESTA (id_calificacion, contenido) VALUES (?, ?)');
             $consulta->execute([$idCalificacion, $contenido]);
         }
+    }
+
+    // =====================================================================
+    // FASE 7 - Reportes y moderación (CU-14)
+    // =====================================================================
+
+    /**
+     * El trabajador reporta una reseña. Solo se puede UNA vez: la condición
+     * "motivo_reporte IS NULL" lo garantiza en el SQL (si ya fue reportada, o
+     * ya revisada y mantenida por el admin, no cambia nada y devuelve false).
+     */
+    public function reportar(int $idCalificacion, string $motivo): bool
+    {
+        $consulta = $this->pdo->prepare(
+            'UPDATE CALIFICACION SET reportada = TRUE, motivo_reporte = ?
+              WHERE id_calificacion = ? AND motivo_reporte IS NULL'
+        );
+        $consulta->execute([$motivo, $idCalificacion]);
+        return $consulta->rowCount() > 0;
+    }
+
+    /** Reseñas reportadas esperando revisión (CU-14 paso 2). */
+    public function listarReportadas(): array
+    {
+        $consulta = $this->pdo->query(
+            'SELECT c.id_calificacion, c.puntuacion, c.comentario, c.fecha, c.motivo_reporte,
+                    uc.nombre AS cliente_nombre, uc.apellido AS cliente_apellido,
+                    ut.nombre AS trabajador_nombre, ut.apellido AS trabajador_apellido
+               FROM CALIFICACION c
+               JOIN USUARIO uc ON uc.id_usuario = c.id_usuario
+               JOIN TRABAJADOR t ON t.id_trabajador = c.id_trabajador
+               JOIN USUARIO ut ON ut.id_usuario = t.id_usuario
+              WHERE c.reportada = TRUE
+              ORDER BY c.fecha ASC, c.id_calificacion ASC'
+        );
+        return $consulta->fetchAll();
+    }
+
+    /** CU-14 paso 4b: la reseña es válida, se mantiene (queda marcada como ya revisada). */
+    public function mantener(int $idCalificacion): bool
+    {
+        $consulta = $this->pdo->prepare(
+            'UPDATE CALIFICACION SET reportada = FALSE WHERE id_calificacion = ? AND reportada = TRUE'
+        );
+        $consulta->execute([$idCalificacion]);
+        return $consulta->rowCount() > 0;
+    }
+
+    /**
+     * CU-14 paso 4a: elimina la reseña (y por CASCADE su respuesta). Solo si
+     * está reportada. El promedio se "recalcula solo" porque nunca se guarda.
+     *
+     * Antes de borrarla se suma 1 a SOLICITUD.calificaciones_eliminadas: la reseña
+     * desaparece pero queda registrado que el cliente "perdió" una calificación,
+     * y con eso se aplica el límite (Config::MAX_BAJAS_CALIFICACION).
+     * Todo va en una transacción: o se borra y se anota, o no pasa nada.
+     *
+     * Devuelve null si no se pudo eliminar (no existía o no estaba reportada);
+     * si se eliminó, devuelve cuántas bajas lleva ese cliente con ese trabajador.
+     */
+    public function eliminarReportada(int $idCalificacion): ?int
+    {
+        $this->pdo->beginTransaction();
+        try {
+            // Se leen los datos ANTES de borrar (después ya no existen).
+            $datos = $this->pdo->prepare(
+                'SELECT id_solicitud, id_usuario, id_trabajador FROM CALIFICACION
+                  WHERE id_calificacion = ? AND reportada = TRUE'
+            );
+            $datos->execute([$idCalificacion]);
+            $cal = $datos->fetch();
+            if (!$cal) {
+                $this->pdo->rollBack();
+                return null;
+            }
+
+            $borrar = $this->pdo->prepare('DELETE FROM CALIFICACION WHERE id_calificacion = ? AND reportada = TRUE');
+            $borrar->execute([$idCalificacion]);
+            if ($borrar->rowCount() === 0) {
+                $this->pdo->rollBack();
+                return null;
+            }
+
+            $this->pdo->prepare(
+                'UPDATE SOLICITUD SET calificaciones_eliminadas = calificaciones_eliminadas + 1 WHERE id_solicitud = ?'
+            )->execute([(int) $cal['id_solicitud']]);
+
+            $this->pdo->commit();
+        } catch (Exception $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
+        return $this->contarBajas((int) $cal['id_usuario'], (int) $cal['id_trabajador']);
+    }
+
+    /**
+     * Cuántas calificaciones de este cliente hacia este trabajador fueron
+     * eliminadas por el Administrador (sumando todos los trabajos que hicieron juntos).
+     */
+    public function contarBajas(int $idCliente, int $idTrabajador): int
+    {
+        $consulta = $this->pdo->prepare(
+            'SELECT COALESCE(SUM(calificaciones_eliminadas), 0) FROM SOLICITUD
+              WHERE id_usuario = ? AND id_trabajador = ?'
+        );
+        $consulta->execute([$idCliente, $idTrabajador]);
+        return (int) $consulta->fetchColumn();
     }
 }

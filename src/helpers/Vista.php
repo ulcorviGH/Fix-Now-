@@ -93,4 +93,61 @@ class Vista
              . '<button type="submit" class="btn ' . self::e($clase) . '">' . self::e($texto) . '</button>'
              . '</form>';
     }
+
+    // -----------------------------------------------------------------
+    // Fase 7 - Panel del Administrador
+    // -----------------------------------------------------------------
+
+    /**
+     * Botón de acción del Administrador: envía POST a public/accion_admin.php.
+     * $accion es una de las acciones de AdminController; $id es el id del
+     * objeto (usuario, trabajador, servicio, imagen o calificación).
+     * $confirmar: texto opcional para pedir confirmación antes de enviar.
+     */
+    public static function formAdmin(string $accion, int $id, string $texto,
+                                     string $clase = 'btn-primary btn-sm', string $confirmar = ''): string
+    {
+        $onsubmit = $confirmar !== ''
+            ? ' onsubmit="return confirm(\'' . self::e(addslashes($confirmar)) . '\');"'
+            : '';
+
+        return '<form method="post" action="accion_admin.php" class="d-inline"' . $onsubmit . '>'
+             . self::campoCsrf()
+             . '<input type="hidden" name="accion" value="' . self::e($accion) . '">'
+             . '<input type="hidden" name="id" value="' . $id . '">'
+             . '<input type="hidden" name="volver" value="' . self::e(self::urlActual()) . '">'
+             . '<button type="submit" class="btn ' . self::e($clase) . '">' . self::e($texto) . '</button>'
+             . '</form>';
+    }
+
+    /**
+     * Igual que formAdmin() pero con un campo de texto obligatorio para el
+     * MOTIVO (rechazos). El campo va en el mismo formulario que el botón.
+     */
+    public static function formAdminMotivo(string $accion, int $id, string $texto,
+                                           string $clase = 'btn-outline-danger btn-sm',
+                                           string $placeholder = 'Motivo (obligatorio)'): string
+    {
+        return '<form method="post" action="accion_admin.php" class="d-flex gap-1 flex-grow-1">'
+             . self::campoCsrf()
+             . '<input type="hidden" name="accion" value="' . self::e($accion) . '">'
+             . '<input type="hidden" name="id" value="' . $id . '">'
+             . '<input type="hidden" name="volver" value="' . self::e(self::urlActual()) . '">'
+             . '<input type="text" name="motivo" class="form-control form-control-sm" maxlength="255" required '
+             . 'placeholder="' . self::e($placeholder) . '">'
+             . '<button type="submit" class="btn ' . self::e($clase) . ' text-nowrap">' . self::e($texto) . '</button>'
+             . '</form>';
+    }
+
+    /** Etiqueta de color para un estado (activo, pendiente, bloqueado, rechazado, aprobado...). */
+    public static function badgeEstado(string $estado): string
+    {
+        $colores = [
+            'activo'     => 'success', 'habilitado' => 'success', 'aprobado' => 'success', 'aprobada' => 'success',
+            'pendiente'  => 'warning', 'bloqueado'  => 'danger',  'rechazado' => 'danger',  'rechazada' => 'danger',
+        ];
+        $color = $colores[$estado] ?? 'secondary';
+        $texto = ucfirst($estado);
+        return '<span class="badge text-bg-' . $color . '">' . self::e($texto) . '</span>';
+    }
 }

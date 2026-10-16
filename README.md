@@ -61,6 +61,31 @@ se ejecutan automáticamente, en ese orden, SOLO cuando la base se crea desde ce
 4. La reseña aparece en el perfil público y el promedio se actualiza solo.
 5. Trabajador: **Mis calificaciones** → **Responder** (o **Editar respuesta**).
 
+## Fase 7 — Panel del Administrador y perfil del Trabajador
+
+**Administrador** (`admin@fixnow.com` / `admin123`): menú con globitos de pendientes.
+- **Habilitar trabajadores** (CU-18): habilitar o rechazar (con motivo).
+- **Usuarios** (CU-13): filtrar, bloquear, activar y eliminar.
+- **Moderar contenido** (CU-15 + CU-19): servicios e imágenes pendientes, aprobar o rechazar (con motivo).
+- **Calificaciones** (CU-14): reseñas reportadas por trabajadores, eliminar o mantener.
+- **Reportes** (CU-16): métricas calculadas en el momento.
+
+**Trabajador** (`trabajador@fixnow.com` / `trabajador123`): **Mi perfil** (CU-09, CU-10, CU-17) y botón **Reportar** en "Mis calificaciones".
+
+Otros trabajadores de prueba (contraseña `trabajador123`): `nicolas@fixnow.com` y `ariana@fixnow.com`
+(pendientes de habilitación), `rocio@fixnow.com` (habilitada, con una reseña reportada).
+Cliente extra: `bruno@fixnow.com` / `cliente123`.
+
+**Base ya creada:** correr en phpMyAdmin, en este orden, `database/migraciones/fase7_alter.sql`,
+`database/migraciones/fase7b_calificaciones_eliminadas.sql` y luego `database/04_datos_prueba_fase7.sql`. **Dockerfile nuevo línea de subida de fotos:**
+`docker compose up -d --build` una vez.
+
+**Regla de bajas de calificaciones (CU-14):** si el admin elimina una reseña, el cliente puede volver a
+calificar ese trabajo una vez; si elimina una segunda reseña del mismo cliente hacia el mismo trabajador, ya no
+puede calificarlo más (`Config::MAX_BAJAS_CALIFICACION`).
+
+**Probar el bloqueo de login:** en `src/config/Config.php`, `MINUTOS_BLOQUEO_LOGIN = 1`.
+
 ## Comandos útiles
 
 | Acción | Comando |

@@ -59,13 +59,34 @@ class Sesion
     }
 
     /**
-     * Corta la ejecución y manda al login si nadie inició sesión.
+     * Fase 7: ¿la sesión sigue siendo válida? Además de estar logueado, la
+     * cuenta tiene que seguir EXISTIENDO y ACTIVA en la base de datos. Así, si
+     * el Administrador bloquea o elimina a alguien que está navegando, queda
+     * fuera en su próximo clic (no recién cuando vuelva a iniciar sesión).
+     * Si la sesión ya no vale, se cierra.
+     */
+    public static function sesionVigente(): bool
+    {
+        if (!self::estaLogueado()) {
+            return false;
+        }
+        $estado = (new Usuario(Database::getConexion()))->obtenerEstado((int) self::idUsuarioActual());
+        if ($estado === 'activo') {
+            return true;
+        }
+        self::logout();
+        return false;
+    }
+
+    /**
+     * Corta la ejecución y manda al login si nadie inició sesión
+     * (o si su cuenta fue bloqueada/eliminada, ver sesionVigente()).
      * Se usa al principio de cualquier página que requiera estar logueado
      * (paneles, chat, perfil, etc.).
      */
     public static function requerirLogin(): void
     {
-        if (!self::estaLogueado()) {
+        if (!self::sesionVigente()) {
             header('Location: index.php');
             exit;
         }

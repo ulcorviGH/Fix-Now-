@@ -28,3 +28,7 @@ RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
 #    vamos a guardar las fotos de perfil y de portfolio que suban
 #    los trabajadores (CU-09, CU-17).
 RUN mkdir -p /var/www/html/public/assets/img/perfiles /var/www/html/public/assets/img/portfolio
+
+# 5) Fase 7: copiamos los ajustes de PHP para subir fotos de hasta 5 MB.
+#    (Como cambió el Dockerfile, hay que correr UNA vez: docker compose up -d --build)
+COPY uploads.ini /usr/local/etc/php/conf.d/uploads.ini

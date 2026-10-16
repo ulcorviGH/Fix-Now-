@@ -7,6 +7,7 @@
 //   1) el aviso "flash" de la última acción (ej. "Solicitud enviada")
 //   2) las preguntas "¿Ya se completó el trabajo?" que estén pendientes
 //      (CU-21 pasos 6-7), para que le aparezcan al usuario en cualquier pantalla.
+// Fase 7: agrega el menú del Administrador y "Mi perfil" del Trabajador.
 // Está en src/ (no en public/) porque es un fragmento, no una página.
 // Las variables llevan sufijo "Nav" para no pisar las de la página que lo incluye.
 // ---------------------------------------------------------------------------
@@ -30,6 +31,12 @@ if ($rolNav === 'cliente' || $rolNav === 'trabajador') {
     $preguntasNav = $solicitudNav->preguntasFinalizacionPendientes($idUsuarioNav, $rolNav);
 }
 $totalPendientesNav = (int) $pendientesNav['contactos'] + (int) $pendientesNav['trabajos'];
+
+// Fase 7: el Administrador ve en el menú cuánto tiene esperando revisión.
+$adminNav = ['trabajadores' => 0, 'contenido' => 0, 'calificaciones' => 0];
+if ($rolNav === 'admin') {
+    $adminNav = (new Estadistica($pdoNav))->pendientesAdmin();
+}
 ?>
 <nav class="navbar navbar-expand bg-white border-bottom shadow-sm mb-3">
     <div class="container">
@@ -50,7 +57,29 @@ $totalPendientesNav = (int) $pendientesNav['contactos'] + (int) $pendientesNav['
                     </a>
                 </li>
                 <li class="nav-item"><a class="nav-link" href="chats.php">Chats</a></li>
+                <li class="nav-item"><a class="nav-link" href="mi_perfil.php">Mi perfil</a></li>
                 <li class="nav-item"><a class="nav-link" href="mis_calificaciones.php">Mis calificaciones</a></li>
+            <?php elseif ($rolNav === 'admin'): ?>
+                <?php
+                // Fase 7: menú del Administrador. Cada ítem muestra un globito rojo si hay algo pendiente.
+                $itemsAdmin = [
+                    ['admin_habilitar.php',      'Habilitar trabajadores', $adminNav['trabajadores']],
+                    ['admin_usuarios.php',       'Usuarios',               0],
+                    ['admin_moderacion.php',     'Moderar contenido',      $adminNav['contenido']],
+                    ['admin_calificaciones.php', 'Calificaciones',         $adminNav['calificaciones']],
+                    ['admin_reportes.php',       'Reportes',               0],
+                ];
+                ?>
+                <?php foreach ($itemsAdmin as [$enlace, $texto, $cantidad]): ?>
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?= $enlace ?>">
+                            <?= Vista::e($texto) ?>
+                            <?php if ($cantidad > 0): ?>
+                                <span class="badge text-bg-danger"><?= (int) $cantidad ?></span>
+                            <?php endif; ?>
+                        </a>
+                    </li>
+                <?php endforeach; ?>
             <?php endif; ?>
         </ul>
 

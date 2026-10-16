@@ -5,6 +5,7 @@
 //   CU-07  Calificar trabajador   (Cliente)
 //   CU-12  Ver calificaciones recibidas (Trabajador)
 //   CU-20  Responder a comentarios de clientes (Trabajador)
+//   CU-14  Reportar una reseña (Trabajador; la modera el Administrador, Fase 7)
 //
 // La regla central del sistema: SOLO se puede calificar un trabajo cuando
 // AMBAS partes confirmaron que terminó. Se verifica acá, en el servidor, no
@@ -30,6 +31,16 @@ class CalificacionController
         // Excepción 6.1: ya existe una calificación para este trabajo.
         if ($solicitud['id_calificacion'] !== null) {
             return ['puede' => false, 'mensaje' => 'Ya enviaste una calificación para este trabajo.', 'solicitud' => $solicitud];
+        }
+
+        // CU-14: si el Administrador ya eliminó el máximo de calificaciones de este
+        // cliente hacia este trabajador, no puede calificarlo más (en ningún trabajo).
+        $bajas = (new Calificacion(Database::getConexion()))
+            ->contarBajas((int) $solicitud['id_usuario'], (int) $solicitud['id_trabajador']);
+        if ($bajas >= Config::MAX_BAJAS_CALIFICACION) {
+            return ['puede' => false, 'solicitud' => $solicitud,
+                    'mensaje' => 'Ya no podés calificar a este trabajador: el administrador eliminó '
+                               . $bajas . ' de tus calificaciones anteriores.'];
         }
 
         // Excepción 1.1: falta la doble confirmación.
@@ -128,5 +139,32 @@ class CalificacionController
 
         $modelo->guardarRespuesta($idCalificacion, $contenido);
         return ['exito' => true, 'mensaje' => 'Tu respuesta quedó publicada.'];
+    }
+
+    /**
+     * CU-14 (Fase 7): el trabajador reporta una reseña suya con un motivo.
+     * Solo se puede reportar UNA vez cada reseña; después decide el Administrador.
+     */
+    public static function reportar(int $idUsuarioTrabajador, int $idCalificacion, string $motivo): array
+    {
+        $modelo = new Calificacion(Database::getConexion());
+
+        // Solo el trabajador calificado puede reportar esa reseña.
+        if ($modelo->obtenerDeTrabajadorUsuario($idCalificacion, $idUsuarioTrabajador) === null) {
+            return ['exito' => false, 'mensaje' => 'Esa calificación no existe o no es tuya.'];
+        }
+
+        $motivo = trim($motivo);
+        if ($motivo === '') {
+            return ['exito' => false, 'mensaje' => 'Tenés que escribir el motivo del reporte.'];
+        }
+        if (mb_strlen($motivo) > 255) {
+            return ['exito' => false, 'mensaje' => 'El motivo es demasiado largo (máximo 255 caracteres).'];
+        }
+
+        if (!$modelo->reportar($idCalificacion, $motivo)) {
+            return ['exito' => false, 'mensaje' => 'Esta calificación ya fue reportada.'];
+        }
+        return ['exito' => true, 'mensaje' => 'Reporte enviado. El administrador va a revisar la calificación.'];
     }
 }
