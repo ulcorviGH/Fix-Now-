@@ -21,6 +21,7 @@ $reportadas = (new Calificacion(Database::getConexion()))->listarReportadas();
     <title>FixNow - Moderar calificaciones</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/estilos.css">
+    <link rel="icon" type="image/png" href="assets/img/favicon.png">
 </head>
 <body class="bg-light">
 

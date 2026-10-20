@@ -40,4 +40,15 @@ class Localidad
         $fila = $consulta->fetch();
         return $fila ?: null;
     }
+
+    /**
+     * Fase 8: ¿existe una localidad con ese id? Sirve para rechazar datos
+     * inventados a mano en el formulario de registro (CU-01).
+     */
+    public function existe(int $idLocalidad): bool
+    {
+        $consulta = $this->pdo->prepare('SELECT 1 FROM LOCALIDAD WHERE id_localidad = ? LIMIT 1');
+        $consulta->execute([$idLocalidad]);
+        return $consulta->fetchColumn() !== false;
+    }
 }

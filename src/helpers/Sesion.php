@@ -16,6 +16,8 @@ class Sesion
     public static function iniciar(): void
     {
         if (session_status() === PHP_SESSION_NONE) {
+            // Fase 8: cookie de sesión segura (HttpOnly, SameSite, modo estricto).
+            Seguridad::configurarSesion();
             session_start();
         }
     }
@@ -37,6 +39,12 @@ class Sesion
     public static function logout(): void
     {
         $_SESSION = [];
+        // Fase 8: además de destruir la sesión en el servidor, se pide al
+        // navegador que borre la cookie (así no queda un id viejo dando vueltas).
+        if (ini_get('session.use_cookies') && PHP_SAPI !== 'cli' && !headers_sent()) {
+            $p = session_get_cookie_params();
+            setcookie(session_name(), '', time() - 3600, $p['path'], $p['domain'], $p['secure'], $p['httponly']);
+        }
         session_destroy();
     }
 
@@ -138,9 +146,11 @@ class Sesion
         return $_SESSION['csrf'];
     }
 
-    public static function csrfValido(?string $token): bool
+    public static function csrfValido($token): bool
     {
-        return $token !== null
+        // Fase 8: acepta cualquier tipo (alguien puede mandar csrf[]=x) y solo
+        // da por válido un texto idéntico al guardado en la sesión.
+        return is_string($token)
             && !empty($_SESSION['csrf'])
             && hash_equals($_SESSION['csrf'], $token);
     }

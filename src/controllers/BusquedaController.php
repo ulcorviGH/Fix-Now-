@@ -45,11 +45,11 @@ class BusquedaController
     {
         $pdo = Database::getConexion();
 
-        $oficio = trim($get['oficio'] ?? '');
+        $oficio = trim(Seguridad::texto($get['oficio'] ?? '')); // Fase 8: ignora listas armadas a mano
 
         // Solo ids numéricos válidos.
         $idsLocalidades = array_values(array_filter(
-            array_map('intval', $get['localidades'] ?? []),
+            array_map('intval', (array) ($get['localidades'] ?? [])),
             fn($id) => $id > 0
         ));
 
@@ -61,7 +61,7 @@ class BusquedaController
             }
         }
 
-        $calificacionMinima = ($get['calificacion_minima'] ?? '') !== ''
+        $calificacionMinima = Seguridad::texto($get['calificacion_minima'] ?? '') !== ''
             ? (float) $get['calificacion_minima']
             : null;
 

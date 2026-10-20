@@ -24,13 +24,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $resultado = CalificacionController::reportar(
                 $idUsuario,
                 (int) ($_POST['id_calificacion'] ?? 0),
-                $_POST['motivo'] ?? ''
+                Seguridad::texto($_POST['motivo'] ?? '')
             );
         } else {
             $resultado = CalificacionController::responder(
                 $idUsuario,
                 (int) ($_POST['id_calificacion'] ?? 0),
-                $_POST['contenido'] ?? ''
+                Seguridad::texto($_POST['contenido'] ?? '')
             );
         }
         Sesion::flash($resultado['exito'] ? 'success' : 'danger', $resultado['mensaje']);
@@ -49,6 +49,7 @@ $panel = CalificacionController::panelDelTrabajador($idUsuario);
     <title>FixNow - Mis calificaciones</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/estilos.css">
+    <link rel="icon" type="image/png" href="assets/img/favicon.png">
 </head>
 <body class="bg-light">
 

@@ -52,6 +52,13 @@ class ChatController
         }
 
         $modelo = new Mensaje(Database::getConexion());
+
+        // Fase 8: límite de mensajes por minuto (frena el spam y el abuso de la API).
+        if (Config::MAX_MENSAJES_POR_MINUTO > 0
+            && $modelo->contarUltimoMinuto($idUsuario) >= Config::MAX_MENSAJES_POR_MINUTO) {
+            return ['exito' => false, 'error' => 'Estás enviando mensajes muy rápido. Esperá un momento.', 'mensaje' => null];
+        }
+
         $idMensaje = $modelo->crear($idSolicitud, $idUsuario, $contenido);
 
         return ['exito' => true, 'error' => '', 'mensaje' => $modelo->obtener($idMensaje)];

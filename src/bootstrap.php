@@ -15,6 +15,7 @@ require_once __DIR__ . '/config/Database.php';
 require_once __DIR__ . '/helpers/Sesion.php';
 require_once __DIR__ . '/helpers/Vista.php';          // (Fase 4)
 require_once __DIR__ . '/helpers/Archivos.php';       // (Fase 7)
+require_once __DIR__ . '/helpers/Seguridad.php';      // (Fase 8)
 
 // Modelos (uno por tabla)
 require_once __DIR__ . '/models/Usuario.php';
@@ -36,6 +37,9 @@ require_once __DIR__ . '/controllers/ChatController.php';      // (Fase 5)
 require_once __DIR__ . '/controllers/CalificacionController.php'; // (Fase 6)
 require_once __DIR__ . '/controllers/AdminController.php';        // (Fase 7)
 require_once __DIR__ . '/controllers/TrabajadorController.php';   // (Fase 7)
+
+// Fase 8: cabeceras HTTP de seguridad para TODAS las páginas (antes de imprimir nada).
+Seguridad::enviarCabeceras();
 
 // Arranca la sesión de PHP para toda la aplicación.
 Sesion::iniciar();

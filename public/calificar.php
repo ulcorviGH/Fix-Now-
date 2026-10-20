@@ -21,7 +21,7 @@ $comentario = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $puntuacion = (int) ($_POST['puntuacion'] ?? 0);
-    $comentario = $_POST['comentario'] ?? '';
+    $comentario = Seguridad::texto($_POST['comentario'] ?? '');
 
     if (!Sesion::csrfValido($_POST['csrf'] ?? null)) {
         $error = 'El formulario venció. Intentá de nuevo.';
@@ -48,6 +48,7 @@ $s = $estado['solicitud'];
     <title>FixNow - Calificar</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/estilos.css">
+    <link rel="icon" type="image/png" href="assets/img/favicon.png">
 </head>
 <body class="bg-light">
 

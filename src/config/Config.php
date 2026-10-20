@@ -39,4 +39,17 @@ class Config
     // eliminar el Administrador antes de bloquearle la posibilidad de calificarlo.
     // Con 2: la primera baja permite volver a calificar; la segunda lo bloquea.
     public const MAX_BAJAS_CALIFICACION = 2;
+
+    // -----------------------------------------------------------------
+    // Fase 8 (seguridad). Son topes agregados que NO figuran en los casos de uso.
+    // -----------------------------------------------------------------
+
+    // Largo mínimo de la contraseña al registrarse (CU-01). El máximo es 72 BYTES
+    // porque bcrypt ignora en silencio todo lo que pase de ese largo.
+    public const MIN_LARGO_CONTRASENA = 8;
+    public const MAX_BYTES_CONTRASENA = 72;
+
+    // Antispam del chat (CU-08): máximo de mensajes que una persona puede enviar
+    // en una ventana de 60 segundos. Con 0 se desactiva el límite.
+    public const MAX_MENSAJES_POR_MINUTO = 30;
 }

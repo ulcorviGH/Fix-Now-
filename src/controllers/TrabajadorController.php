@@ -90,9 +90,10 @@ class TrabajadorController
         }
         $pdo = Database::getConexion();
 
-        $oficio = trim($post['oficio'] ?? '');
-        $descripcion = trim($post['descripcion'] ?? '');
-        $aniosTexto = trim((string) ($post['anios_experiencia'] ?? ''));
+        // Fase 8: Seguridad::texto() descarta listas armadas a mano (evita error 500).
+        $oficio = trim(Seguridad::texto($post['oficio'] ?? ''));
+        $descripcion = trim(Seguridad::texto($post['descripcion'] ?? ''));
+        $aniosTexto = trim(Seguridad::texto($post['anios_experiencia'] ?? ''));
 
         // Excepción 4.1: campos obligatorios.
         if ($oficio === '' || $descripcion === '') {

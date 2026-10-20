@@ -32,3 +32,12 @@ RUN mkdir -p /var/www/html/public/assets/img/perfiles /var/www/html/public/asset
 # 5) Fase 7: copiamos los ajustes de PHP para subir fotos de hasta 5 MB.
 #    (Como cambió el Dockerfile, hay que correr UNA vez: docker compose up -d --build)
 COPY uploads.ini /usr/local/etc/php/conf.d/uploads.ini
+
+# 6) Fase 8: seguridad. Copiamos (a) los ajustes de PHP de producción (errores
+#    fuera de pantalla, cookies de sesión seguras) y (b) los ajustes de Apache
+#    (sin versión visible, sin listado de carpetas, sin ejecutar PHP en la
+#    carpeta de fotos) y activamos el de Apache con a2enconf.
+#    (Como cambió el Dockerfile, hay que correr UNA vez: docker compose up -d --build)
+COPY seguridad.ini /usr/local/etc/php/conf.d/seguridad.ini
+COPY zz-fixnow-seguridad.conf /etc/apache2/conf-available/zz-fixnow-seguridad.conf
+RUN a2enconf zz-fixnow-seguridad

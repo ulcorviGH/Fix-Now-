@@ -1,114 +1,134 @@
 # FixNow – Plataforma de servicios y oficios
 
-Práctica Profesionalizante 2 — Corvi Ulises
+Plataforma web para contratar trabajadores de oficios (plomeros, electricistas, gasistas…).
+Tiene tres roles: **Cliente**, **Trabajador** y **Administrador**.
+Práctica Profesionalizante 2 — Corvi Ulises.
 
 ## Stack
-- Frontend: HTML5 + Bootstrap 5 + JavaScript
-- Backend: PHP 8 (POO + PDO)
-- Base de datos: MySQL 8
-- Contenedores: Docker + Docker Compose
 
-## Avance
-- [x] Fase 1 – Entorno Docker + estructura
-- [x] Fase 2 – Base de datos (11 tablas)
-- [x] Fase 3 – Registro e inicio de sesión (CU-01, CU-02)
-- [x] Fase 4 – Búsqueda y perfil de trabajador (CU-03, CU-04)
-- [x] Fase 5 – Contacto, chat y contratación (CU-06, CU-08, CU-11, CU-21, CU-22)
-- [x] Fase 6 – Calificaciones (CU-07, CU-12, CU-20)
-- [ ] Fase 7 – Panel de administrador (CU-13 a CU-19)
+| Capa | Tecnología |
+|---|---|
+| Front | HTML5 + Bootstrap 5 (CDN) + JavaScript |
+| Back | PHP 8.2 (POO + PDO, consultas preparadas) |
+| Base de datos | MySQL 8 (administrable con phpMyAdmin) |
+| Servidor | Apache, dentro de Docker Compose (3 contenedores) |
+| Control de versiones | Git + GitHub |
 
-## Cómo levantar el proyecto
+## Estado del proyecto
 
-Parado en la carpeta donde está `docker-compose.yml`:
+- [x] Fases 1-2: Docker + base de datos (11 tablas)
+- [x] Fase 3: registro e inicio de sesión (CU-01, CU-02)
+- [x] Fase 4: lista por cercanía, buscador y perfil público (CU-03, CU-04)
+- [x] Fase 5: contacto, chat, contratación y finalización (CU-06, CU-08, CU-11, CU-21, CU-22)
+- [x] Fase 6: calificaciones y respuestas (CU-07, CU-12, CU-20)
+- [x] Fase 7: panel del Administrador y "Mi perfil" del Trabajador (CU-09, 10, 13 a 19)
+- [x] **Fase 8: seguridad, pulido visual y documentación final** (los 22 casos de uso implementados)
 
-1. (Solo la primera vez, si clonás el repo) copiar las variables de entorno:
-   `cp .env.example .env` y completar los valores.
-2. Primera vez o si cambió el Dockerfile: `docker compose up -d --build`
-3. Los demás días: `docker compose up -d`
+## Instalación desde cero (una computadora nueva)
 
-- Sitio web: http://localhost:8080
-- phpMyAdmin: http://localhost:8081
+Requisitos: **Docker Desktop** (con WSL2 en Windows) y **Git**.
 
-La PRIMERA vez que se crea la base, MySQL tarda 4-5 minutos en inicializarse.
-Esperar antes de abrir el sitio.
+```powershell
+# 1) Clonar el repositorio y entrar a la carpeta (la que contiene docker-compose.yml)
+git clone https://github.com/TU_USUARIO/fixnow.git
+cd fixnow
 
-## Usuarios de prueba (se crean solos al crear la base)
+# 2) Crear el archivo de configuración a partir de la plantilla y editarlo
+copy .env.example .env        # en Linux/Mac: cp .env.example .env
+#    Abrí .env y reemplazá los "cambiar_esto" por contraseñas propias.
 
-| Rol | Mail | Contraseña |
-| --- | --- | --- |
-| Cliente | cliente@fixnow.com | cliente123 |
-| Trabajador (habilitado) | trabajador@fixnow.com | trabajador123 |
-| Administrador | admin@fixnow.com | admin123 |
+# 3) Levantar todo (la primera vez construye la imagen de PHP)
+docker compose up -d --build
+```
 
-Los scripts `database/01_init.sql`, `02_admin_prueba.sql` y `03_datos_prueba.sql`
-se ejecutan automáticamente, en ese orden, SOLO cuando la base se crea desde cero.
+**Esperá 4-5 minutos** la primera vez: MySQL crea la base y ejecuta los scripts de
+`database/` (01 a 04) solo. Podés ver el avance con `docker compose logs -f db`
+(listo cuando aparece "ready for connections" por segunda vez).
 
-## Cómo probar el flujo de la Fase 5
+| Qué | Dónde |
+|---|---|
+| La aplicación | http://localhost:8080 |
+| phpMyAdmin | http://localhost:8081 (usuario `root` y la clave de `MYSQL_ROOT_PASSWORD`) |
 
-1. Cliente (`cliente@fixnow.com`): buscar → perfil de Carlos → **Enviar mensaje**.
-2. Trabajador (`trabajador@fixnow.com`, en otra ventana o en incógnito): **Solicitudes** → Aceptar.
-3. Los dos entran al **chat** y se escriben (los mensajes llegan solos cada 4 segundos).
-4. Cliente: **Contratar trabajador**. Trabajador: Solicitudes → *Solicitudes de trabajo* → Aceptar.
-5. La pregunta "¿Ya se completó el trabajo?" aparece a los 2 días. Para probarla ya,
-   en `src/config/Config.php` poné `DIAS_PRIMERA_PREGUNTA = 0` (y volvelo a 2 después).
-6. Cuando ambos confirman, el trabajo suma a "Trabajos completados" del perfil.
+## Usuarios de prueba (se crean solos)
 
-## Cómo probar la Fase 6 (calificaciones)
+| Rol | Mail | Contraseña | Notas |
+|---|---|---|---|
+| Administrador | admin@fixnow.com | admin123 | |
+| Cliente | cliente@fixnow.com | cliente123 | Laura, San Carlos Centro |
+| Cliente | bruno@fixnow.com | cliente123 | para probar bloquear/eliminar |
+| Trabajador | trabajador@fixnow.com | trabajador123 | Carlos, plomero, habilitado |
+| Trabajador | rocio@fixnow.com | trabajador123 | electricista, con una reseña reportada |
+| Trabajador | nicolas@fixnow.com | trabajador123 | pendiente de habilitación |
+| Trabajador | ariana@fixnow.com | trabajador123 | pendiente de habilitación |
 
-1. Completá un trabajo como en la Fase 5 (contratar → aceptar → "Marcar trabajo como terminado" del trabajador).
-2. Cliente: al marcarlo el trabajador, le aparece enseguida "¿Ya se completó el trabajo?" → **Sí**.
-3. Cliente: **Mis trabajos** → **★ Calificar** → elegir estrellas (+ comentario opcional) → Publicar.
-4. La reseña aparece en el perfil público y el promedio se actualiza solo.
-5. Trabajador: **Mis calificaciones** → **Responder** (o **Editar respuesta**).
+> Son solo para desarrollo y demostración. **Cambiá o eliminá estas cuentas antes de publicar el sitio.**
 
-## Fase 7 — Panel del Administrador y perfil del Trabajador
+## Guía rápida de prueba
 
-**Administrador** (`admin@fixnow.com` / `admin123`): menú con globitos de pendientes.
-- **Habilitar trabajadores** (CU-18): habilitar o rechazar (con motivo).
-- **Usuarios** (CU-13): filtrar, bloquear, activar y eliminar.
-- **Moderar contenido** (CU-15 + CU-19): servicios e imágenes pendientes, aprobar o rechazar (con motivo).
-- **Calificaciones** (CU-14): reseñas reportadas por trabajadores, eliminar o mantener.
-- **Reportes** (CU-16): métricas calculadas en el momento.
+1. **Cliente → trabajador:** entrá como `cliente@`, abrí el perfil de Carlos, "Enviar mensaje".
+2. Entrá como `trabajador@` → *Solicitudes* → **Aceptar** el chat. Chateen entre los dos.
+3. Como cliente, en el chat: **Contratar trabajador**. Como trabajador: aceptar en *Solicitudes de trabajo*.
+4. El trabajador pulsa **Marcar trabajo como terminado**; el cliente responde "Sí" a la pregunta
+   que aparece arriba. Recién ahí se habilita **Calificar**.
+5. Como trabajador: *Mis calificaciones* → responder o reportar la reseña.
+6. Como `admin@`: habilitar a Nicolás, moderar la reseña reportada, ver *Reportes*.
 
-**Trabajador** (`trabajador@fixnow.com` / `trabajador123`): **Mi perfil** (CU-09, CU-10, CU-17) y botón **Reportar** en "Mis calificaciones".
+Para probar rápido la pregunta "¿Ya se completó?" poné `DIAS_PRIMERA_PREGUNTA = 0` en
+`src/config/Config.php` (el valor real es 2 días).
 
-Otros trabajadores de prueba (contraseña `trabajador123`): `nicolas@fixnow.com` y `ariana@fixnow.com`
-(pendientes de habilitación), `rocio@fixnow.com` (habilitada, con una reseña reportada).
-Cliente extra: `bruno@fixnow.com` / `cliente123`.
+## Comandos útiles (parado en la carpeta de `docker-compose.yml`)
 
-**Base ya creada:** correr en phpMyAdmin, en este orden, `database/migraciones/fase7_alter.sql`,
-`database/migraciones/fase7b_calificaciones_eliminadas.sql` y luego `database/04_datos_prueba_fase7.sql`. **Dockerfile nuevo línea de subida de fotos:**
-`docker compose up -d --build` una vez.
+| Comando | Para qué |
+|---|---|
+| `docker compose up -d` | Encender (uso diario) |
+| `docker compose up -d --build` | Encender reconstruyendo la imagen (solo si cambió el Dockerfile) |
+| `docker compose stop` | Apagar sin borrar nada |
+| `docker compose logs -f app` | Ver los errores de PHP (en pantalla ya no se muestran) |
+| `docker compose down -v` | **BORRA LA BASE DE DATOS** y empieza de cero |
 
-**Regla de bajas de calificaciones (CU-14):** si el admin elimina una reseña, el cliente puede volver a
-calificar ese trabajo una vez; si elimina una segunda reseña del mismo cliente hacia el mismo trabajador, ya no
-puede calificarlo más (`Config::MAX_BAJAS_CALIFICACION`).
+## Si tenés una base ya creada (actualizar sin borrar)
 
-**Probar el bloqueo de login:** en `src/config/Config.php`, `MINUTOS_BLOQUEO_LOGIN = 1`.
+La Fase 8 **no cambia el esquema**: no hay SQL nuevo. Solo cambió el Dockerfile, por eso hay que
+correr una vez `docker compose up -d --build`. Los scripts de `database/migraciones/` son para
+actualizar bases viejas en phpMyAdmin: `fase5_alter.sql`, `fase7_alter.sql`, `fase7b_calificaciones_eliminadas.sql`.
 
-## Comandos útiles
+## Seguridad (resumen)
 
-| Acción | Comando |
-| --- | --- |
-| Levantar los contenedores | `docker compose up -d` |
-| Apagar los contenedores | `docker compose down` |
-| Ver los logs de PHP/Apache | `docker compose logs app --tail 20` |
-| Reconstruir tras cambiar el Dockerfile | `docker compose up -d --build` |
-| Borrar TODO (incluida la base) y recrearla | `docker compose down -v` |
+- Contraseñas con bcrypt; bloqueo temporal tras 3 intentos fallidos; mínimo 8 caracteres.
+- Token CSRF en **todos** los formularios (incluidos login, registro y cerrar sesión).
+- Consultas PDO preparadas; todo texto mostrado pasa por `Vista::e()` (anti-XSS).
+- Permisos validados **en el servidor** en cada controller (no solo ocultando botones).
+- Cookie de sesión `HttpOnly` + `SameSite=Lax`; cabeceras `CSP`, `X-Frame-Options`, `nosniff`, etc.
+- Fotos: se valida el contenido real, el servidor inventa el nombre, y Apache no ejecuta PHP en la carpeta de fotos.
+- Errores de PHP a log (no a pantalla); Apache sin versión visible ni listado de carpetas.
+- Límite de mensajes de chat por minuto.
 
 ## Estructura
 
 ```
 fixnow/
-├── docker-compose.yml
-├── .env / .env.example
-├── docker/php/Dockerfile
-├── database/            scripts SQL (se ejecutan solos al crear la base)
-├── src/                 código PHP interno (no visible desde el navegador)
-│   ├── config/          conexión a la base
-│   ├── models/          una clase por tabla
-│   ├── controllers/     lógica de cada caso de uso
-│   ├── helpers/         sesión y utilidades de vista
-│   └── views/           fragmentos HTML compartidos (navbar)
-└── public/              lo único visible por HTTP (páginas, css, js, imágenes)
+├── docker-compose.yml          # los 3 contenedores
+├── .env / .env.example         # claves (el .env NO se sube a Git)
+├── docker/php/                 # Dockerfile, uploads.ini, seguridad.ini, zz-fixnow-seguridad.conf
+├── database/                   # 01_init.sql … 04_datos_prueba_fase7.sql (Docker los ejecuta solos)
+│   └── migraciones/            # SQL manuales para bases existentes
+├── src/                        # código interno (NO visible por HTTP)
+│   ├── config/                 # Database.php (PDO), Config.php (reglas y topes)
+│   ├── models/                 # una clase por tabla: SOLO SQL
+│   ├── controllers/            # reglas de negocio y permisos
+│   ├── helpers/                # Sesion, Vista, Archivos, Seguridad
+│   ├── views/navbar.php
+│   └── bootstrap.php           # único require de todas las páginas
+└── public/                     # raíz web de Apache
+    ├── *.php                   # pantallas (cortas: llaman al controller y dibujan HTML)
+    ├── accion.php / accion_admin.php   # despachadores de botones
+    ├── api/chat.php            # JSON del chat
+    └── assets/{css,js,img}
 ```
+
+## Trabajo futuro (fuera del alcance actual)
+
+Mails reales de aviso, notificaciones push, pagos online, geolocalización avanzada (mapas),
+tareas programadas (cron) para las preguntas de finalización, límite de intentos por IP,
+verificación de identidad de trabajadores, y chat en tiempo real con WebSockets.

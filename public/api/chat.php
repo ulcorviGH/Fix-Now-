@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Sesion::csrfValido($_POST['csrf'] ?? null)) {
         responder(['ok' => false, 'error' => 'Formulario vencido. Recargá la página.'], 403);
     }
-    $resultado = ChatController::enviar($miId, (int) ($_POST['id'] ?? 0), $_POST['contenido'] ?? '');
+    $resultado = ChatController::enviar($miId, (int) ($_POST['id'] ?? 0), Seguridad::texto($_POST['contenido'] ?? ''));
     if (!$resultado['exito']) {
         responder(['ok' => false, 'error' => $resultado['error']], 400);
     }

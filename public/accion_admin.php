@@ -33,9 +33,9 @@ if (!Sesion::csrfValido($_POST['csrf'] ?? null)) {
 $resultado = AdminController::ejecutar(
     Sesion::idUsuarioActual(),
     Sesion::rolActual(),
-    (string) ($_POST['accion'] ?? ''),
+    Seguridad::texto($_POST['accion'] ?? ''),
     (int) ($_POST['id'] ?? 0),
-    (string) ($_POST['motivo'] ?? '')
+    Seguridad::texto($_POST['motivo'] ?? '')
 );
 
 Sesion::flash($resultado['exito'] ? 'success' : 'danger', $resultado['mensaje']);

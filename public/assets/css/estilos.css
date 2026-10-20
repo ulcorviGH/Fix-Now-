@@ -1,10 +1,124 @@
 /* public/assets/css/estilos.css
    ---------------------------------------------------------------------
    Estilos propios de FixNow, además de los que ya trae Bootstrap.
+   Fase 8: se agregó la identidad visual del prototipo (paleta roja con
+   detalle dorado, tipografías Sora e Inter, tarjetas redondeadas).
    --------------------------------------------------------------------- */
 
+/* Tipografías del prototipo: Sora (títulos) e Inter (texto). Si no hay
+   internet se usan las del sistema y el sitio se ve igual de bien. */
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+/* ------------------------------------------------------------------
+   PALETA (variables). Cambiando un valor acá cambia todo el sitio.
+   ------------------------------------------------------------------ */
+:root {
+    --fx-primary: #C1392B;       /* rojo principal (botones, enlaces) */
+    --fx-primary-dark: #9A2E22;  /* rojo oscuro (hover, marca) */
+    --fx-primary-soft: #F8E1DE;  /* rojo muy suave (fondos) */
+    --fx-accent: #C97A3D;        /* naranja de acento */
+    --fx-gold: #D79A2C;          /* dorado de las estrellas */
+    --fx-bg: #F5F3EE;            /* fondo general cálido */
+    --fx-ink: #20262C;           /* color del texto */
+    --fx-border: #E4E0D6;        /* bordes suaves */
+
+    /* Le decimos a Bootstrap que use NUESTROS colores */
+    --bs-primary: #C1392B;
+    --bs-primary-rgb: 193, 57, 43;
+    --bs-link-color: #C1392B;
+    --bs-link-color-rgb: 193, 57, 43;
+    --bs-link-hover-color: #9A2E22;
+    --bs-link-hover-color-rgb: 154, 46, 34;
+    --bs-body-color: #20262C;
+    --bs-body-bg: #F5F3EE;
+    --bs-border-color: #E4E0D6;
+    --bs-border-radius: .625rem;
+}
+
+h1, h2, h3, h4, h5, h6, .navbar-brand, .h1, .h2, .h3, .h4, .h5, .h6 {
+    font-family: 'Sora', 'Inter', 'Segoe UI', sans-serif;
+    color: var(--fx-ink);
+}
+
+/* Botones y etiquetas de Bootstrap con la paleta de FixNow */
+.btn-primary {
+    --bs-btn-bg: #C1392B;
+    --bs-btn-border-color: #C1392B;
+    --bs-btn-hover-bg: #9A2E22;
+    --bs-btn-hover-border-color: #9A2E22;
+    --bs-btn-active-bg: #8A2A1F;
+    --bs-btn-active-border-color: #8A2A1F;
+    --bs-btn-disabled-bg: #C1392B;
+    --bs-btn-disabled-border-color: #C1392B;
+    font-weight: 600;
+}
+.btn-outline-primary {
+    --bs-btn-color: #C1392B;
+    --bs-btn-border-color: #C1392B;
+    --bs-btn-hover-bg: #C1392B;
+    --bs-btn-hover-border-color: #C1392B;
+    --bs-btn-active-bg: #9A2E22;
+    --bs-btn-active-border-color: #9A2E22;
+}
+.text-bg-primary { background-color: #C1392B !important; }
+.text-primary { color: #C1392B !important; }
+.form-control:focus, .form-select:focus {
+    border-color: #C1392B;
+    box-shadow: 0 0 0 .2rem rgba(193, 57, 43, .18);
+}
+.form-check-input:checked { background-color: #C1392B; border-color: #C1392B; }
+
+/* Tarjetas: bordes suaves, esquinas redondeadas y sombra liviana (como el prototipo) */
+.card {
+    border: 1px solid var(--fx-border);
+    border-radius: .75rem;
+    box-shadow: 0 1px 2px rgba(32, 38, 44, .06), 0 4px 14px rgba(32, 38, 44, .05);
+}
+
+/* Barra superior: blanca con una línea de color de marca debajo */
+.navbar {
+    border-bottom: 3px solid var(--fx-primary) !important;
+}
+.navbar .nav-link { font-weight: 500; }
+.navbar .nav-link:hover { color: var(--fx-primary); }
+.logo-marca {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    object-fit: cover;
+    box-shadow: 0 2px 6px rgba(154, 46, 34, .4);
+}
+.logo-login {
+    width: 76px;
+    height: 76px;
+    border-radius: 18px;
+    object-fit: cover;
+    box-shadow: 0 4px 12px rgba(154, 46, 34, .4);
+}
+
+/* Estrellas en dorado */
+.text-warning { color: var(--fx-gold) !important; }
+
+/* Tablas (panel del administrador): encabezado discreto */
+.table > thead th {
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #8C93A0;
+}
+
+/* Celulares: botones y tarjetas cómodos para el dedo, sin desbordar */
+@media (max-width: 576px) {
+    .container { padding-left: .75rem; padding-right: .75rem; }
+    .navbar .navbar-nav { flex-wrap: wrap; }
+    .btn { padding-top: .5rem; padding-bottom: .5rem; }
+    .chat-caja { height: 60vh; }
+    .table-responsive-fx { overflow-x: auto; }
+}
+
 body {
-    font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+    font-family: 'Inter', 'Segoe UI', Roboto, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
 }
 
 /* Tarjetas de trabajadores (lista de CU-03): se elevan al pasar el mouse */
@@ -45,7 +159,7 @@ body {
 }
 
 .msg.mio .burbuja {
-    background: #0d6efd;
+    background: var(--fx-primary);
     color: #fff;
 }
 
@@ -86,3 +200,4 @@ body {
 .estrellas-input label:hover ~ label {
     color: #ffc107;
 }
+body.bg-light { background-color: var(--fx-bg) !important; }

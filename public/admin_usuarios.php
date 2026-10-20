@@ -11,9 +11,9 @@ require_once __DIR__ . '/../src/bootstrap.php';
 Sesion::requerirRol('admin');
 
 // Filtros que llegan por la URL (GET). Cualquier valor raro simplemente no filtra.
-$rol = (string) ($_GET['rol'] ?? '');
-$estado = (string) ($_GET['estado'] ?? '');
-$texto = trim((string) ($_GET['texto'] ?? ''));
+$rol = Seguridad::texto($_GET['rol'] ?? '');
+$estado = Seguridad::texto($_GET['estado'] ?? '');
+$texto = trim(Seguridad::texto($_GET['texto'] ?? ''));
 
 $usuarios = (new Usuario(Database::getConexion()))->listarParaAdmin($rol, $estado, $texto);
 ?>
@@ -25,6 +25,7 @@ $usuarios = (new Usuario(Database::getConexion()))->listarParaAdmin($rol, $estad
     <title>FixNow - Usuarios</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/estilos.css">
+    <link rel="icon" type="image/png" href="assets/img/favicon.png">
 </head>
 <body class="bg-light">
 

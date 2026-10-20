@@ -34,7 +34,7 @@ if (!Sesion::csrfValido($_POST['csrf'] ?? null)) {
 $resultado = SolicitudController::ejecutar(
     Sesion::idUsuarioActual(),
     Sesion::rolActual(),
-    $_POST['accion'] ?? '',
+    Seguridad::texto($_POST['accion'] ?? ''),
     (int) ($_POST['id_solicitud'] ?? 0)
 );
 

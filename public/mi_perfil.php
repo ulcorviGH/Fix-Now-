@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $resultado = TrabajadorController::guardarPerfil($idUsuario, $_POST, $_FILES['foto'] ?? null);
                 break;
             case 'agregar_servicio':
-                $resultado = TrabajadorController::agregarServicio($idUsuario, $_POST['nombre'] ?? '', $_POST['descripcion'] ?? '');
+                $resultado = TrabajadorController::agregarServicio($idUsuario, Seguridad::texto($_POST['nombre'] ?? ''), Seguridad::texto($_POST['descripcion'] ?? ''));
                 break;
             case 'eliminar_servicio':
                 $resultado = TrabajadorController::eliminarServicio($idUsuario, (int) ($_POST['id_servicio'] ?? 0));
@@ -61,6 +61,7 @@ $panel = TrabajadorController::panel($idUsuario);
     <title>FixNow - Mi perfil</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/estilos.css">
+    <link rel="icon" type="image/png" href="assets/img/favicon.png">
 </head>
 <body class="bg-light">
 

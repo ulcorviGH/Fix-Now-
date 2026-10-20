@@ -11,7 +11,12 @@ $errores = [];
 $exito = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $resultado = AuthController::registrar($_POST);
+    // Fase 8: el registro también lleva token CSRF.
+    if (!Sesion::csrfValido($_POST['csrf'] ?? null)) {
+        $resultado = ['exito' => false, 'errores' => ['El formulario venció. Intentá de nuevo.']];
+    } else {
+        $resultado = AuthController::registrar($_POST);
+    }
 
     if ($resultado['exito']) {
         $exito = true;
@@ -34,11 +39,15 @@ $localidades = (new Localidad($pdo))->listarTodas();
     <title>FixNow - Registrarse</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/estilos.css">
+    <link rel="icon" type="image/png" href="assets/img/favicon.png">
 </head>
 <body class="bg-light">
 <div class="container py-5 d-flex justify-content-center">
     <div class="card shadow p-4" style="width: 100%; max-width: 520px;">
-        <h1 class="h4 mb-4">🔧 Crear cuenta en FixNow</h1>
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <img src="assets/img/logo.png" alt="FixNow" class="logo-marca">
+            <h1 class="h4 mb-0">Crear cuenta en FixNow</h1>
+        </div>
 
         <?php if ($exito): ?>
             <!-- Paso 7 del CU-01: mensaje de confirmación. -->
@@ -52,7 +61,7 @@ $localidades = (new Localidad($pdo))->listarTodas();
                 <div class="alert alert-danger">
                     <ul class="mb-0">
                         <?php foreach ($errores as $error): ?>
-                            <li><?= htmlspecialchars($error) ?></li>
+                            <li><?= Vista::e($error) ?></li>
                         <?php endforeach; ?>
                     </ul>
                 </div>
@@ -61,24 +70,25 @@ $localidades = (new Localidad($pdo))->listarTodas();
             <!-- id="formRegistro" se usa desde main.js para mostrar/ocultar
                  los campos de "Trabajador" dinámicamente (ver assets/js/main.js) -->
             <form method="post" id="formRegistro" novalidate>
+                <?= Vista::campoCsrf() /* Fase 8: token anti-CSRF */ ?>
 
                 <div class="row">
                     <div class="col-6 mb-3">
                         <label class="form-label">Nombre</label>
                         <input type="text" class="form-control" name="nombre"
-                               value="<?= htmlspecialchars($_POST['nombre'] ?? '') ?>" required>
+                               value="<?= Vista::e(Seguridad::texto($_POST['nombre'] ?? '')) ?>" required>
                     </div>
                     <div class="col-6 mb-3">
                         <label class="form-label">Apellido</label>
                         <input type="text" class="form-control" name="apellido"
-                               value="<?= htmlspecialchars($_POST['apellido'] ?? '') ?>" required>
+                               value="<?= Vista::e(Seguridad::texto($_POST['apellido'] ?? '')) ?>" required>
                     </div>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">Mail</label>
                     <input type="email" class="form-control" name="mail"
-                           value="<?= htmlspecialchars($_POST['mail'] ?? '') ?>" required>
+                           value="<?= Vista::e(Seguridad::texto($_POST['mail'] ?? '')) ?>" required>
                 </div>
 
                 <div class="mb-3">

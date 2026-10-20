@@ -23,13 +23,17 @@ class AuthController
         // Paso 4.1 del CU-01: validar que los campos obligatorios no estén
         // vacíos ANTES de tocar la base de datos.
         // -----------------------------------------------------------------
-        $nombre = trim($post['nombre'] ?? '');
-        $apellido = trim($post['apellido'] ?? '');
-        $mail = trim($post['mail'] ?? '');
-        $contrasena = $post['contrasena'] ?? '';
-        $idLocalidad = $post['id_localidad'] ?? '';
-        $esTrabajador = ($post['es_trabajador'] ?? 'no') === 'si';
-        $oficio = trim($post['oficio'] ?? '');
+        // Fase 8: si alguien arma el POST a mano mandando una LISTA donde va un texto
+        // (ej. nombre[]=x), PHP daría error 500. Este ayudante lo convierte en vacío.
+        $texto = fn(string $clave): string => is_string($post[$clave] ?? null) ? $post[$clave] : '';
+
+        $nombre = trim($texto('nombre'));
+        $apellido = trim($texto('apellido'));
+        $mail = trim($texto('mail'));
+        $contrasena = $texto('contrasena');
+        $idLocalidad = $texto('id_localidad');
+        $esTrabajador = $texto('es_trabajador') === 'si';
+        $oficio = trim($texto('oficio'));
         $localidadesTrabajo = $post['localidades_trabajo'] ?? [];
 
         if ($nombre === '' || $apellido === '' || $mail === '' || $contrasena === '' || $idLocalidad === '') {
@@ -40,6 +44,36 @@ class AuthController
             $errores[] = 'El mail ingresado no es válido.';
         }
 
+        // Fase 8: largos máximos = tamaño de las columnas de USUARIO/TRABAJADOR.
+        // Sin esto, un texto demasiado largo provocaba un error genérico de la base.
+        if (mb_strlen($nombre) > 60 || mb_strlen($apellido) > 60) {
+            $errores[] = 'El nombre y el apellido pueden tener hasta 60 caracteres.';
+        }
+        if (mb_strlen($mail) > 120) {
+            $errores[] = 'El mail puede tener hasta 120 caracteres.';
+        }
+        if (mb_strlen($oficio) > 80) {
+            $errores[] = 'El oficio puede tener hasta 80 caracteres.';
+        }
+
+        // Fase 8: contraseña mínima (8) y máxima (72 bytes: bcrypt ignora el resto).
+        if ($contrasena !== '' && mb_strlen($contrasena) < Config::MIN_LARGO_CONTRASENA) {
+            $errores[] = 'La contraseña debe tener al menos ' . Config::MIN_LARGO_CONTRASENA . ' caracteres.';
+        }
+        if (strlen($contrasena) > Config::MAX_BYTES_CONTRASENA) {
+            $errores[] = 'La contraseña es demasiado larga (máximo ' . Config::MAX_BYTES_CONTRASENA . ' caracteres).';
+        }
+
+        // Fase 8: los datos deben tener la forma esperada (alguien puede armar
+        // el POST a mano con texto donde va una lista, o una localidad inexistente).
+        if (!is_array($localidadesTrabajo)) {
+            $localidadesTrabajo = [];
+        }
+        if ($idLocalidad !== '' && !(new Localidad($pdo))->existe((int) $idLocalidad)) {
+            $errores[] = 'La localidad elegida no es válida.';
+        }
+        $localidadesTrabajo = array_values(array_unique(array_map('intval', $localidadesTrabajo)));
+
         // Reglas extra si se registra como Trabajador (CU-01, sección "SI"):
         if ($esTrabajador) {
             if ($oficio === '') {
@@ -47,6 +81,15 @@ class AuthController
             }
             if (empty($localidadesTrabajo)) {
                 $errores[] = 'Debe seleccionar al menos una localidad de trabajo.';
+            } else {
+                // Fase 8: cada zona elegida debe existir en el catálogo.
+                $modeloLocalidad = new Localidad($pdo);
+                foreach ($localidadesTrabajo as $idZona) {
+                    if (!$modeloLocalidad->existe((int) $idZona)) {
+                        $errores[] = 'Una de las localidades de trabajo no es válida.';
+                        break;
+                    }
+                }
             }
         }
 

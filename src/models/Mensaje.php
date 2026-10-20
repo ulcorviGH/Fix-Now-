@@ -51,4 +51,17 @@ class Mensaje
         $fila = $consulta->fetch();
         return $fila ?: null;
     }
+
+    /**
+     * Fase 8 (antispam): cuántos mensajes envió una persona en los últimos
+     * 60 segundos, en cualquiera de sus conversaciones.
+     */
+    public function contarUltimoMinuto(int $idEmisor): int
+    {
+        $consulta = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM MENSAJE WHERE id_emisor = ? AND fecha_envio >= DATE_SUB(NOW(), INTERVAL 60 SECOND)'
+        );
+        $consulta->execute([$idEmisor]);
+        return (int) $consulta->fetchColumn();
+    }
 }

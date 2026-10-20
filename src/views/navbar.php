@@ -40,7 +40,9 @@ if ($rolNav === 'admin') {
 ?>
 <nav class="navbar navbar-expand bg-white border-bottom shadow-sm mb-3">
     <div class="container">
-        <a class="navbar-brand fw-bold" href="panel_<?= Vista::e($rolNav) ?>.php">🔧 FixNow</a>
+        <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="panel_<?= Vista::e($rolNav) ?>.php">
+            <img src="assets/img/logo.png" alt="" class="logo-marca"> FixNow
+        </a>
 
         <ul class="navbar-nav me-auto">
             <?php if ($rolNav === 'cliente'): ?>
@@ -85,7 +87,11 @@ if ($rolNav === 'admin') {
 
         <div class="d-flex align-items-center gap-3">
             <span class="text-muted small d-none d-md-inline">Hola, <?= Vista::e($_SESSION['nombre'] ?? '') ?></span>
-            <a href="logout.php" class="btn btn-outline-danger btn-sm">Cerrar sesión</a>
+            <!-- Fase 8: cerrar sesión es un POST con token CSRF, no un simple enlace -->
+            <form method="post" action="logout.php" class="d-inline">
+                <?= Vista::campoCsrf() ?>
+                <button type="submit" class="btn btn-outline-danger btn-sm">Cerrar sesión</button>
+            </form>
         </div>
     </div>
 </nav>
