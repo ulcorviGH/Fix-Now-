@@ -53,9 +53,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="assets/css/estilos.css">
     <link rel="icon" type="image/png" href="assets/img/favicon.png">
 </head>
-<body class="d-flex align-items-center justify-content-center min-vh-100 py-4">
+<!-- Fase 8b (cambio 1.2): fondo completo de herramientas con capa oscura (ver estilos.css, .login-pantalla) -->
+<body class="login-pantalla">
 
-    <div class="card shadow p-4" style="width: 100%; max-width: 400px;">
+<div class="login-contenido">
+    <div class="login-tarjeta">
         <div class="text-center mb-2"><img src="assets/img/logo.png" alt="FixNow" class="logo-login"></div>
         <h1 class="h4 mb-3 text-center">FixNow</h1>
         <p class="text-muted text-center small mb-4">Plataforma de servicios y oficios</p>
@@ -74,7 +76,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <div class="mb-3">
                 <label for="contrasena" class="form-label">Contraseña</label>
-                <input type="password" class="form-control" id="contrasena" name="contrasena" required>
+                <!-- Cambio 1.1: ojito para ver / ocultar la contraseña -->
+                <div class="pw-wrap">
+                    <input type="password" class="form-control" id="contrasena" name="contrasena" required>
+                    <?= Vista::ojoPassword() ?>
+                </div>
             </div>
             <button type="submit" class="btn btn-primary w-100">Ingresar</button>
         </form>
@@ -90,7 +96,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <a href="#" class="small text-muted">Política de privacidad</a>
         </div>
     </div>
+</div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/password.js"></script>
 </body>
 </html>

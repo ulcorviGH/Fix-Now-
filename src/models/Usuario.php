@@ -143,35 +143,51 @@ class Usuario
     public function listarParaAdmin(string $rol, string $estado, string $texto, int $limite = 200): array
     {
         $limite = (int) $limite;
+        $rol = strtolower(trim($rol));
+        $estado = strtolower(trim($estado));
+
+        // Fase 8b (cambio 4.2): TODAS las condiciones viven en UN solo WHERE, en una
+        // lista que se une con AND. Cada condición agrega sus "?" a $params en el MISMO
+        // orden en que aparece en el SQL, así los filtros se pueden combinar sin
+        // límite (texto + rol + estado). Ya no hay subconsulta ni columna calculada
+        // dentro del WHERE, que era lo más frágil entre MySQL y MariaDB.
+        $condiciones = ["u.rol <> 'admin'"];
         $params = [];
-        $filtros = '';
 
         if (in_array($rol, ['cliente', 'trabajador'], true)) {
-            $filtros .= ' AND u.rol = ?';
+            $condiciones[] = 'u.rol = ?';
             $params[] = $rol;
         }
-        if ($texto !== '') {
-            $filtros .= ' AND (u.nombre LIKE ? OR u.apellido LIKE ? OR u.mail LIKE ? OR CONCAT(u.nombre, \' \', u.apellido) LIKE ?)';
-            $comodin = '%' . $texto . '%';
-            array_push($params, $comodin, $comodin, $comodin, $comodin);
+
+        // Texto: cada PALABRA debe aparecer en nombre, apellido o mail (así "Gómez Carlos"
+        // y "carlos gómez" encuentran lo mismo). Se escapan % y _ para que se busquen
+        // como letras comunes, y '|' es el carácter de escape declarado en el SQL.
+        $palabras = preg_split('/\s+/', trim($texto), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        foreach (array_slice($palabras, 0, 6) as $palabra) {
+            $condiciones[] = "(u.nombre LIKE ? ESCAPE '|' OR u.apellido LIKE ? ESCAPE '|' OR u.mail LIKE ? ESCAPE '|')";
+            $comodin = '%' . str_replace(['|', '%', '_'], ['||', '|%', '|_'], $palabra) . '%';
+            array_push($params, $comodin, $comodin, $comodin);
         }
 
-        $sql = "SELECT * FROM (
-                    SELECT u.id_usuario, u.nombre, u.apellido, u.mail, u.rol, u.fecha_registro,
-                           l.nombre AS localidad, t.oficio,
-                           CASE WHEN t.estado_habilitacion = 'rechazado' THEN 'rechazado' ELSE u.estado END AS estado_visible
-                      FROM USUARIO u
-                      LEFT JOIN LOCALIDAD l ON l.id_localidad = u.id_localidad
-                      LEFT JOIN TRABAJADOR t ON t.id_usuario = u.id_usuario
-                     WHERE u.rol <> 'admin' {$filtros}
-                ) AS lista
-                WHERE 1 = 1";
-
-        if (in_array($estado, ['activo', 'pendiente', 'bloqueado', 'rechazado'], true)) {
-            $sql .= ' AND estado_visible = ?';
+        // Estado visible: un trabajador rechazado figura como 'rechazado' (su USUARIO.estado
+        // queda 'pendiente'); el resto muestra el estado de la cuenta.
+        if ($estado === 'rechazado') {
+            $condiciones[] = "t.estado_habilitacion = 'rechazado'";
+        } elseif (in_array($estado, ['activo', 'pendiente', 'bloqueado'], true)) {
+            $condiciones[] = "(t.estado_habilitacion IS NULL OR t.estado_habilitacion <> 'rechazado')";
+            $condiciones[] = 'u.estado = ?';
             $params[] = $estado;
         }
-        $sql .= " ORDER BY fecha_registro DESC, id_usuario DESC LIMIT {$limite}";
+
+        $sql = "SELECT u.id_usuario, u.nombre, u.apellido, u.mail, u.rol, u.fecha_registro,
+                       l.nombre AS localidad, t.oficio,
+                       CASE WHEN t.estado_habilitacion = 'rechazado' THEN 'rechazado' ELSE u.estado END AS estado_visible
+                  FROM USUARIO u
+                  LEFT JOIN LOCALIDAD l ON l.id_localidad = u.id_localidad
+                  LEFT JOIN TRABAJADOR t ON t.id_usuario = u.id_usuario
+                 WHERE " . implode(' AND ', $condiciones) . "
+                 ORDER BY u.fecha_registro DESC, u.id_usuario DESC
+                 LIMIT {$limite}";
 
         $consulta = $this->pdo->prepare($sql);
         $consulta->execute($params);

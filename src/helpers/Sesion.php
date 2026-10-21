@@ -104,6 +104,20 @@ class Sesion
      * Corta la ejecución si el usuario logueado no tiene el rol pedido.
      * Ejemplo: Sesion::requerirRol('admin') en el panel de administración.
      */
+    /**
+     * Cambio 3.4 (Fase 8b): igual que requerirRol() pero acepta VARIOS roles.
+     * Se usa en las pantallas de "cliente" (buscar, perfil público, contactar,
+     * calificar), que ahora también puede usar un trabajador actuando como cliente.
+     */
+    public static function requerirRoles(array $rolesPermitidos): void
+    {
+        self::requerirLogin();
+        if (!in_array(self::rolActual(), $rolesPermitidos, true)) {
+            header('Location: index.php');
+            exit;
+        }
+    }
+
     public static function requerirRol(string $rolEsperado): void
     {
         self::requerirLogin();

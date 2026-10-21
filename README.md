@@ -22,7 +22,8 @@ Práctica Profesionalizante 2 — Corvi Ulises.
 - [x] Fase 5: contacto, chat, contratación y finalización (CU-06, CU-08, CU-11, CU-21, CU-22)
 - [x] Fase 6: calificaciones y respuestas (CU-07, CU-12, CU-20)
 - [x] Fase 7: panel del Administrador y "Mi perfil" del Trabajador (CU-09, 10, 13 a 19)
-- [x] **Fase 8: seguridad, pulido visual y documentación final** (los 22 casos de uso implementados)
+- [x] Fase 8: seguridad, pulido visual y documentación final (los 22 casos de uso implementados)
+- [x] **Fase 8b: refinamientos de diseño y UX** — búsqueda por radio con geolocalización, perfil en la barra superior, chat inmersivo, calificaciones dentro de "Mi perfil", trabajador que también puede contratar, login con fondo e ícono de contraseña, filtros del admin
 
 ## Instalación desde cero (una computadora nueva)
 
@@ -72,7 +73,13 @@ docker compose up -d --build
 4. El trabajador pulsa **Marcar trabajo como terminado**; el cliente responde "Sí" a la pregunta
    que aparece arriba. Recién ahí se habilita **Calificar**.
 5. Como trabajador: *Mis calificaciones* → responder o reportar la reseña.
-6. Como `admin@`: habilitar a Nicolás, moderar la reseña reportada, ver *Reportes*.
+6. Como `admin@`: habilitar a Nicolás, moderar la reseña reportada, ver *Estadísticas*.
+7. **Búsqueda por radio:** en *Inicio* mové el slider de km. El navegador te pide la ubicación; si estás
+   lejos de San Carlos o no querés dar permiso, tildá *"Usar mi localidad en vez del GPS"*.
+8. **Trabajador como cliente:** entrá como `trabajador@` → *Inicio* → pedile un servicio a Rocío
+   (sin crear otra cuenta). Un trabajador nunca se ve a sí mismo en las búsquedas.
+9. **Cerrar sesión:** está al final de tu perfil (*Mi perfil* para el trabajador; *Mi cuenta* para cliente
+   y administrador), en la miniatura de arriba a la derecha.
 
 Para probar rápido la pregunta "¿Ya se completó?" poné `DIAS_PRIMERA_PREGUNTA = 0` en
 `src/config/Config.php` (el valor real es 2 días).
@@ -89,9 +96,15 @@ Para probar rápido la pregunta "¿Ya se completó?" poné `DIAS_PRIMERA_PREGUNT
 
 ## Si tenés una base ya creada (actualizar sin borrar)
 
-La Fase 8 **no cambia el esquema**: no hay SQL nuevo. Solo cambió el Dockerfile, por eso hay que
-correr una vez `docker compose up -d --build`. Los scripts de `database/migraciones/` son para
-actualizar bases viejas en phpMyAdmin: `fase5_alter.sql`, `fase7_alter.sql`, `fase7b_calificaciones_eliminadas.sql`.
+La **Fase 8b agrega dos columnas** (`USUARIO.latitud` y `USUARIO.longitud`) para la búsqueda por radio.
+Con una base existente es **obligatorio** correr, en phpMyAdmin (pestaña SQL, con la base `fixnow`
+seleccionada), el archivo **`database/migraciones/migracion_geolocalizacion.sql`**. Es seguro correrlo
+más de una vez y además carga coordenadas simuladas a los trabajadores de prueba. Sin ese paso el
+buscador da error. Con una base **nueva** no hace falta: Docker ya ejecuta `01` a `05`.
+
+La Fase 8 no cambió el esquema y solo modificó el Dockerfile (hay que correr una vez
+`docker compose up -d --build`). Los demás scripts de `database/migraciones/` son para bases viejas:
+`fase5_alter.sql`, `fase7_alter.sql`, `fase7b_calificaciones_eliminadas.sql`.
 
 ## Seguridad (resumen)
 
@@ -103,6 +116,7 @@ actualizar bases viejas en phpMyAdmin: `fase5_alter.sql`, `fase7_alter.sql`, `fa
 - Fotos: se valida el contenido real, el servidor inventa el nombre, y Apache no ejecuta PHP en la carpeta de fotos.
 - Errores de PHP a log (no a pantalla); Apache sin versión visible ni listado de carpetas.
 - Límite de mensajes de chat por minuto.
+- La geolocalización del navegador solo se permite para el propio sitio (cabecera `Permissions-Policy`).
 
 ## Estructura
 
@@ -111,14 +125,14 @@ fixnow/
 ├── docker-compose.yml          # los 3 contenedores
 ├── .env / .env.example         # claves (el .env NO se sube a Git)
 ├── docker/php/                 # Dockerfile, uploads.ini, seguridad.ini, zz-fixnow-seguridad.conf
-├── database/                   # 01_init.sql … 04_datos_prueba_fase7.sql (Docker los ejecuta solos)
+├── database/                   # 01_init.sql … 05_datos_geolocalizacion.sql (Docker los ejecuta solos)
 │   └── migraciones/            # SQL manuales para bases existentes
 ├── src/                        # código interno (NO visible por HTTP)
 │   ├── config/                 # Database.php (PDO), Config.php (reglas y topes)
 │   ├── models/                 # una clase por tabla: SOLO SQL
 │   ├── controllers/            # reglas de negocio y permisos
 │   ├── helpers/                # Sesion, Vista, Archivos, Seguridad
-│   ├── views/navbar.php
+│   ├── views/                  # navbar.php, boton_logout.php, calificaciones_trabajador.php
 │   └── bootstrap.php           # único require de todas las páginas
 └── public/                     # raíz web de Apache
     ├── *.php                   # pantallas (cortas: llaman al controller y dibujan HTML)

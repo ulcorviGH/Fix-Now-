@@ -8,7 +8,8 @@
 
 require_once __DIR__ . '/../src/bootstrap.php';
 
-Sesion::requerirRol('cliente');
+// Fase 8b (cambio 3.4): cliente Y trabajador (un trabajador puede actuar como cliente).
+Sesion::requerirRoles(['cliente', 'trabajador']);
 
 $trabajos = (new Solicitud(Database::getConexion()))->listarTrabajosDeCliente(Sesion::idUsuarioActual());
 ?>

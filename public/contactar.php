@@ -8,7 +8,8 @@
 
 require_once __DIR__ . '/../src/bootstrap.php';
 
-Sesion::requerirRol('cliente');
+// Fase 8b (cambio 3.4): cliente Y trabajador (un trabajador puede actuar como cliente).
+Sesion::requerirRoles(['cliente', 'trabajador']);
 
 $idTrabajador = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
 $idCliente = Sesion::idUsuarioActual();
@@ -67,8 +68,10 @@ if ($perfil !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="container pb-5" style="max-width: 640px;">
     <?php if ($perfil === null): ?>
         <div class="alert alert-warning">Este perfil no está disponible.</div>
-        <a href="panel_cliente.php" class="btn btn-link px-0">← Volver a la búsqueda</a>
+        <a href="panel_cliente.php" class="btn-volver">← Volver</a>
     <?php else: ?>
+        <!-- Fase 8b (cambio 1.5): enlace de retroceso estandarizado, vuelve al perfil del trabajador -->
+        <a href="perfil_trabajador.php?id=<?= (int) $idTrabajador ?>" class="btn-volver mb-2">← Volver</a>
         <div class="card shadow-sm">
             <div class="card-body">
                 <div class="d-flex gap-3 align-items-center mb-3">

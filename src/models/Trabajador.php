@@ -73,35 +73,63 @@ class Trabajador
     }
 
     /**
-     * Lista de trabajadores ordenada por cercanía a una coordenada (la de la
-     * localidad del cliente). Si el trabajador cubre varias localidades, se
-     * toma la MÁS CERCANA de todas.
+     * Fase 8b - Fórmula de HAVERSINE (ley de cosenos esférica): distancia en km
+     * entre dos puntos de la Tierra (radio 6371 km). LEAST/GREATEST "recortan"
+     * el valor entre -1 y 1 porque por redondeo puede dar 1.0000000001 y ACOS()
+     * devolvería NULL.
      *
-     * Fórmula de Haversine/ley de cosenos: distancia en km entre dos puntos
-     * de la Tierra (radio 6371 km). LEAST/GREATEST "recortan" el valor entre
-     * -1 y 1 porque por redondeo puede dar 1.0000000001 y ACOS() fallaría.
+     * $colLat / $colLon son las columnas del trabajador contra las que se mide.
+     * Cada fórmula usa 3 marcadores "?" en este orden: latitud, longitud, latitud.
      */
-    public function listarCercanos(float $lat, float $lon, int $limite = 30): array
+    private function haversine(string $colLat, string $colLon): string
+    {
+        return "6371 * ACOS(LEAST(1, GREATEST(-1,
+                   COS(RADIANS(?)) * COS(RADIANS({$colLat}))
+                 * COS(RADIANS({$colLon}) - RADIANS(?))
+                 + SIN(RADIANS(?)) * SIN(RADIANS({$colLat})))))";
+    }
+
+    /**
+     * Expresión SQL de la distancia (en km) entre un punto (lat, lon) y un trabajador:
+     *   1) si el trabajador tiene coordenadas propias (USUARIO.latitud/longitud), se usan;
+     *   2) si no, se toma la localidad más cercana de las que cubre.
+     * Lleva 6 marcadores "?": (lat, lon, lat) para cada una de las dos fórmulas.
+     * Requiere que la consulta tenga los alias t (TRABAJADOR) y u (USUARIO).
+     */
+    private function expresionDistancia(): string
+    {
+        return "COALESCE(
+                    CASE WHEN u.latitud IS NOT NULL AND u.longitud IS NOT NULL
+                         THEN " . $this->haversine('u.latitud', 'u.longitud') . " END,
+                    (SELECT MIN(" . $this->haversine('l2.latitud', 'l2.longitud') . ")
+                       FROM TRABAJADOR_LOCALIDAD tl2
+                       JOIN LOCALIDAD l2 ON l2.id_localidad = tl2.id_localidad
+                      WHERE tl2.id_trabajador = t.id_trabajador)
+                )";
+    }
+
+    /**
+     * Lista de trabajadores ordenada por cercanía a una coordenada (la de la
+     * localidad del cliente). $excluirUsuario evita que un trabajador que busca
+     * como cliente se vea a sí mismo en la lista (Fase 8b, cambio 3.4).
+     */
+    public function listarCercanos(float $lat, float $lon, int $limite = 30, int $excluirUsuario = 0): array
     {
         $limite = (int) $limite; // se castea a entero, es seguro interpolarlo
 
         $sql = "SELECT {$this->columnasLista()},
-                       (SELECT MIN(6371 * ACOS(LEAST(1, GREATEST(-1,
-                                 COS(RADIANS(?)) * COS(RADIANS(l2.latitud))
-                               * COS(RADIANS(l2.longitud) - RADIANS(?))
-                               + SIN(RADIANS(?)) * SIN(RADIANS(l2.latitud))))))
-                          FROM TRABAJADOR_LOCALIDAD tl2
-                          JOIN LOCALIDAD l2 ON l2.id_localidad = tl2.id_localidad
-                         WHERE tl2.id_trabajador = t.id_trabajador) AS distancia_km
+                       {$this->expresionDistancia()} AS distancia_km
                   FROM TRABAJADOR t
                   JOIN USUARIO u ON u.id_usuario = t.id_usuario
                  WHERE t.estado_habilitacion = 'habilitado'
                    AND u.estado = 'activo'
+                   AND t.id_usuario <> ?
                  ORDER BY distancia_km ASC
                  LIMIT {$limite}";
 
         $consulta = $this->pdo->prepare($sql);
-        $consulta->execute([$lat, $lon, $lat]); // orden = orden de los ? en el SQL
+        // Orden = orden de los "?" en el SQL: 6 de la distancia y 1 de la exclusión.
+        $consulta->execute([$lat, $lon, $lat, $lat, $lon, $lat, $excluirUsuario]);
         return $consulta->fetchAll();
     }
 
@@ -110,13 +138,24 @@ class Trabajador
      *   - $oficio: texto libre, se compara contra oficio y nombre/descr. de servicios
      *   - $idsLocalidades: el trabajador debe cubrir AL MENOS UNA de ellas
      *   - $calificacionMinima: promedio mínimo (null = sin filtro)
-     * Resultado ordenado por calificación (mejor primero).
+     *   - Fase 8b: $lat/$lon/$radioKm: solo trabajadores a $radioKm km o menos del punto
+     *   - Fase 8b: $excluirUsuario: no incluye al propio usuario que busca
+     * Resultado ordenado por calificación (mejor primero); a igual calificación, el más cercano.
      */
-    public function buscar(string $oficio, array $idsLocalidades, ?float $calificacionMinima, int $limite = 30): array
+    public function buscar(string $oficio, array $idsLocalidades, ?float $calificacionMinima, int $limite = 30,
+                           ?float $lat = null, ?float $lon = null, ?float $radioKm = null, int $excluirUsuario = 0): array
     {
         $limite = (int) $limite;
-        $params = [];
+        $paramsSelect = [];   // marcadores "?" de la lista de columnas (van PRIMERO en el SQL)
+        $paramsFiltros = [];  // marcadores del WHERE interno
+        $paramsExterno = [];  // marcadores del WHERE externo
         $filtros = '';
+        $columnaDistancia = '';
+
+        if ($lat !== null && $lon !== null) {
+            $columnaDistancia = ', ' . $this->expresionDistancia() . ' AS distancia_km';
+            $paramsSelect = [$lat, $lon, $lat, $lat, $lon, $lat];
+        }
 
         if ($oficio !== '') {
             // Busca coincidencias en el oficio o en los servicios aprobados.
@@ -126,7 +165,7 @@ class Trabajador
                                         AND s.estado_revision = 'aprobado'
                                         AND (s.nombre LIKE ? OR s.descripcion LIKE ?)))";
             $comodin = '%' . $oficio . '%';
-            array_push($params, $comodin, $comodin, $comodin);
+            array_push($paramsFiltros, $comodin, $comodin, $comodin);
         }
 
         if (!empty($idsLocalidades)) {
@@ -136,13 +175,17 @@ class Trabajador
                                        WHERE tl.id_trabajador = t.id_trabajador
                                          AND tl.id_localidad IN ({$marcadores}))";
             foreach ($idsLocalidades as $id) {
-                $params[] = (int) $id;
+                $paramsFiltros[] = (int) $id;
             }
         }
 
-        // Se arma como subconsulta para poder filtrar por la columna calculada.
+        // Nunca mostrarse a uno mismo (si $excluirUsuario es 0 no excluye a nadie).
+        $filtros .= ' AND t.id_usuario <> ?';
+        $paramsFiltros[] = $excluirUsuario;
+
+        // Se arma como subconsulta para poder filtrar por columnas calculadas.
         $sql = "SELECT * FROM (
-                    SELECT {$this->columnasLista()}
+                    SELECT {$this->columnasLista()}{$columnaDistancia}
                       FROM TRABAJADOR t
                       JOIN USUARIO u ON u.id_usuario = t.id_usuario
                      WHERE t.estado_habilitacion = 'habilitado'
@@ -153,13 +196,20 @@ class Trabajador
 
         if ($calificacionMinima !== null) {
             $sql .= ' AND calificacion_promedio >= ?';
-            $params[] = $calificacionMinima;
+            $paramsExterno[] = $calificacionMinima;
+        }
+        if ($columnaDistancia !== '' && $radioKm !== null) {
+            // Filtro por radio: los trabajadores SIN ubicación (NULL) quedan afuera.
+            $sql .= ' AND distancia_km <= ?';
+            $paramsExterno[] = $radioKm;
         }
 
-        $sql .= " ORDER BY calificacion_promedio DESC, nombre ASC LIMIT {$limite}";
+        $orden = $columnaDistancia !== '' ? ', distancia_km ASC' : '';
+        $sql .= " ORDER BY calificacion_promedio DESC{$orden}, nombre ASC LIMIT {$limite}";
 
         $consulta = $this->pdo->prepare($sql);
-        $consulta->execute($params);
+        // El orden del array debe coincidir con el orden de los "?" dentro del SQL.
+        $consulta->execute(array_merge($paramsSelect, $paramsFiltros, $paramsExterno));
         return $consulta->fetchAll();
     }
 
@@ -167,7 +217,7 @@ class Trabajador
      * Lista general de mejor calificados. Se usa de respaldo cuando el
      * cliente no tiene localidad o no hay nadie cerca (excepción 2.1 de CU-03).
      */
-    public function listarMejorCalificados(int $limite = 30): array
+    public function listarMejorCalificados(int $limite = 30, int $excluirUsuario = 0): array
     {
         $limite = (int) $limite;
         $sql = "SELECT * FROM (
@@ -176,11 +226,23 @@ class Trabajador
                       JOIN USUARIO u ON u.id_usuario = t.id_usuario
                      WHERE t.estado_habilitacion = 'habilitado'
                        AND u.estado = 'activo'
+                       AND t.id_usuario <> ?
                 ) AS resultado
                 ORDER BY calificacion_promedio DESC, nombre ASC
                 LIMIT {$limite}";
 
-        return $this->pdo->query($sql)->fetchAll();
+        $consulta = $this->pdo->prepare($sql);
+        $consulta->execute([$excluirUsuario]);
+        return $consulta->fetchAll();
+    }
+
+    /** Foto de perfil de un trabajador (por id de usuario). Null si no tiene. La usa la navbar. */
+    public function fotoDeUsuario(int $idUsuario): ?string
+    {
+        $consulta = $this->pdo->prepare('SELECT foto_perfil FROM TRABAJADOR WHERE id_usuario = ? LIMIT 1');
+        $consulta->execute([$idUsuario]);
+        $foto = $consulta->fetchColumn();
+        return ($foto !== false && $foto !== null && $foto !== '') ? (string) $foto : null;
     }
 
     // =====================================================================
@@ -200,6 +262,7 @@ class Trabajador
     public function obtenerPerfilCompleto(int $idTrabajador): ?array
     {
         $sql = "SELECT t.id_trabajador,
+                       t.id_usuario,
                        u.nombre,
                        u.apellido,
                        t.oficio,

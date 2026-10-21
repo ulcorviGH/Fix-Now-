@@ -201,3 +201,133 @@ body {
     color: #ffc107;
 }
 body.bg-light { background-color: var(--fx-bg) !important; }
+
+/* ==================================================================
+   FASE 8b - Cambios de diseño (1.1, 1.2, 1.3, 1.4, 1.5 y 3.2)
+   ================================================================== */
+
+/* ---- Cambio 1.5: enlace "← Volver" minimalista (el mismo en todas las vistas) ---- */
+.btn-volver {
+    display: inline-block;
+    padding: .25rem 0;
+    color: #6c757d;
+    font-size: .9rem;
+    font-weight: 500;
+    text-decoration: none;
+    background: none;
+    border: 0;
+}
+.btn-volver:hover { color: var(--fx-primary); text-decoration: underline; }
+
+/* ---- Cambio 1.3: miniatura + nombre de la barra superior ---- */
+.perfil-nav { color: var(--fx-ink); }
+.perfil-nav:hover .perfil-nav-nombre { color: var(--fx-primary); }
+.perfil-nav img { border: 2px solid var(--fx-border); }
+
+/* ---- Cambio 1.4: botón rojo de cerrar sesión (al final del perfil) ---- */
+.boton-logout { font-weight: 700; box-shadow: 0 4px 12px rgba(193, 57, 43, .35); }
+
+/* ---- Cambio 3.2: chat alto e inmersivo, en una sola tarjeta ---- */
+.chat-panel {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 120px);   /* ocupa casi toda la pantalla bajo la barra superior */
+    min-height: 440px;
+    background: #fff;
+    border: 1px solid var(--fx-border);
+    border-radius: .85rem;
+    box-shadow: 0 2px 6px rgba(32, 38, 44, .06), 0 8px 24px rgba(32, 38, 44, .06);
+    overflow: hidden;
+}
+.chat-cabecera {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .6rem .9rem;
+    border-bottom: 1px solid var(--fx-border);
+    background: #fff;
+    flex-wrap: wrap;
+}
+.chat-titulo { min-width: 0; flex: 1 1 140px; line-height: 1.2; }
+.chat-acciones { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+.chat-acciones form { margin: 0; }
+/* los mensajes ocupan todo el alto que sobra; la caja de texto queda abajo */
+.chat-panel .chat-caja {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+    padding: 1rem;
+    background: #f7f5f0;
+}
+.chat-pie { padding: .7rem .9rem; border-top: 1px solid var(--fx-border); background: #fff; }
+
+/* ---- Cambio 1.1: ícono del "ojito" dentro del campo contraseña ---- */
+.pw-wrap { position: relative; }
+.pw-wrap .form-control { padding-right: 2.9rem; }
+.pw-ojo {
+    position: absolute;
+    top: 50%;
+    right: .35rem;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.2rem;
+    height: 2.2rem;
+    padding: 0;
+    color: #6c757d;
+    background: none;
+    border: 0;
+    border-radius: 50%;
+    cursor: pointer;
+}
+.pw-ojo:hover { color: var(--fx-primary); background: rgba(0, 0, 0, .05); }
+.pw-ojo svg { width: 1.25rem; height: 1.25rem; }
+.pw-ojo .ojo-cerrado { display: none; }
+.pw-ojo.visible .ojo-abierto { display: none; }
+.pw-ojo.visible .ojo-cerrado { display: inline; }
+
+/* ---- Cambio 1.2: login con fondo completo (imagen + capa oscura y desenfoque) ---- */
+body.login-pantalla {
+    min-height: 100vh;
+    margin: 0;
+    position: relative;
+    background: #2b1210;       /* color de respaldo si la imagen no carga */
+}
+/* Capa 1: la imagen de herramientas, apenas desenfocada */
+body.login-pantalla::before {
+    content: "";
+    position: fixed;
+    inset: -12px;              /* se agranda para que el desenfoque no deje bordes claros */
+    background: url('../img/fondo-login.svg') center / cover no-repeat;
+    filter: blur(3px);
+    z-index: 0;
+}
+/* Capa 2: velo oscuro para que la tarjeta blanca resalte */
+body.login-pantalla::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(20, 24, 28, .72), rgba(80, 20, 14, .55));
+    z-index: 1;
+}
+.login-contenido {
+    position: relative;
+    z-index: 2;                /* por encima de las dos capas */
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+/* La tarjeta: blanco puro y sombra suave */
+.login-tarjeta {
+    width: 100%;
+    max-width: 420px;
+    background: #ffffff;
+    border: 0;
+    border-radius: 1.1rem;
+    padding: 2rem 1.75rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .25), 0 2px 8px rgba(0, 0, 0, .12);
+}
+.login-tarjeta.ancha { max-width: 640px; }

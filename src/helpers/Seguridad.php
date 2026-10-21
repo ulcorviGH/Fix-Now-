@@ -37,8 +37,9 @@ class Seguridad
         // Al salir hacia otro sitio, solo se informa el dominio, no la URL completa.
         header('Referrer-Policy: strict-origin-when-cross-origin');
 
-        // El sitio no necesita cámara, micrófono ni geolocalización del navegador.
-        header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+        // El sitio no necesita cámara ni micrófono. La geolocalización SÍ se permite,
+        // pero solo para FixNow mismo (Fase 8b: búsqueda por radio en km).
+        header('Permissions-Policy: camera=(), microphone=(), geolocation=(self)');
 
         // Content-Security-Policy: lista blanca de DE DÓNDE puede cargar cosas la
         // página. Solo permitimos nuestro propio sitio, Bootstrap (jsDelivr) y las

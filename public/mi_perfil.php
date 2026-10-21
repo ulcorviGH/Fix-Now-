@@ -3,6 +3,7 @@
 // ---------------------------------------------------------------------------
 // "Mi perfil" del Trabajador. Reúne en una sola pantalla:
 //   CU-09  Datos del perfil, foto y zonas de trabajo
+//   CU-12 / CU-20 / CU-14  Mis calificaciones: ver, responder y reportar (Fase 8b, cambio 3.3)
 //   CU-10  Mis servicios (se publican cuando los aprueba el administrador)
 //   CU-17  Mis fotos de portfolio (se publican cuando las aprueba el administrador)
 // La página es corta: recibe el POST, se lo pasa a TrabajadorController y
@@ -41,17 +42,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'eliminar_foto':
                 $resultado = TrabajadorController::eliminarFoto($idUsuario, (int) ($_POST['id_imagen'] ?? 0));
                 break;
+            // Fase 8b (cambio 3.3): las acciones de "Mis calificaciones" ahora llegan acá.
+            case 'responder':   // CU-20
+                $resultado = CalificacionController::responder(
+                    $idUsuario, (int) ($_POST['id_calificacion'] ?? 0), Seguridad::texto($_POST['contenido'] ?? ''));
+                $ancla = '#calificaciones';
+                break;
+            case 'reportar':    // CU-14
+                $resultado = CalificacionController::reportar(
+                    $idUsuario, (int) ($_POST['id_calificacion'] ?? 0), Seguridad::texto($_POST['motivo'] ?? ''));
+                $ancla = '#calificaciones';
+                break;
             default:
                 $resultado = ['exito' => false, 'mensaje' => 'Acción desconocida.'];
         }
         Sesion::flash($resultado['exito'] ? 'success' : 'danger', $resultado['mensaje']);
     }
     // Post/Redirect/Get: recargar la página no reenvía el formulario.
-    header('Location: mi_perfil.php');
+    // Después de responder o reportar se vuelve directo a la sección de calificaciones.
+    header('Location: mi_perfil.php' . ($ancla ?? ''));
     exit;
 }
 
 $panel = TrabajadorController::panel($idUsuario);
+$panelCal = CalificacionController::panelDelTrabajador($idUsuario); // Fase 8b: datos de las calificaciones
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -232,7 +246,20 @@ $panel = TrabajadorController::panel($idUsuario);
         </div>
     </div>
 
+    <!-- ===================== MIS CALIFICACIONES (CU-12, CU-20, CU-14) — Fase 8b, cambio 3.3 ===================== -->
+    <div id="calificaciones" class="mt-4">
+        <h2 class="h5 mb-3">Mis calificaciones</h2>
+        <?php if ($panelCal === null): ?>
+            <div class="alert alert-warning">No encontramos tu perfil de trabajador.</div>
+        <?php else: ?>
+            <?php require __DIR__ . '/../src/views/calificaciones_trabajador.php'; ?>
+        <?php endif; ?>
+    </div>
+
 <?php endif; ?>
+
+    <!-- Fase 8b (cambio 1.4): "Cerrar sesión" va al final de la vista de perfil -->
+    <?php require __DIR__ . '/../src/views/boton_logout.php'; ?>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

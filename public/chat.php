@@ -6,6 +6,9 @@
 //     chat.php?id=ID_SOLICITUD
 // Los mensajes nuevos llegan solos: assets/js/chat.js consulta api/chat.php
 // cada pocos segundos (sin recargar la página).
+// Fase 8b (cambio 3.2): el chat es una sola tarjeta alta e inmersiva. Se quitó el
+// título grande y el banner de estado; el estado y los botones (por ejemplo el verde
+// "Contratar trabajador") viven en la cabecera compacta del propio chat.
 // ---------------------------------------------------------------------------
 
 require_once __DIR__ . '/../src/bootstrap.php';
@@ -49,93 +52,81 @@ if ($chat !== null) {
 
 <?php require __DIR__ . '/../src/views/navbar.php'; ?>
 
-<div class="container pb-5" style="max-width: 780px;">
-    <a href="chats.php" class="btn btn-link px-0 mb-2">← Volver a mis chats</a>
+<div class="container pb-3" style="max-width: 900px;">
 
 <?php if ($chat === null): ?>
+    <a href="chats.php" class="btn-volver mb-2">← Volver</a>
     <div class="alert alert-warning">Esta conversación no está disponible.</div>
 
 <?php else: ?>
 
-    <h1 class="h5 mb-3">
-        Chat con <?= Vista::e($otraParte) ?>
-        <?php if ($soyCliente): ?><small class="text-muted">· <?= Vista::e($chat['oficio']) ?></small><?php endif; ?>
-    </h1>
-
-    <!-- ============ ESTADO DEL TRABAJO (CU-21 / CU-22) ============ -->
-    <div class="card card-body shadow-sm mb-3">
-        <?php if ($finalizado): ?>
-            <div class="d-flex flex-wrap align-items-center gap-2">
-                <div class="flex-grow-1">✅ <strong>Trabajo terminado.</strong> Ambas partes lo confirmaron.</div>
-                <?php if ($soyCliente && $chat['id_calificacion'] === null): ?>
-                    <a href="calificar.php?id=<?= $idSolicitud ?>" class="btn btn-warning btn-sm">★ Calificar al trabajador</a>
-                <?php elseif ($soyCliente): ?>
-                    <span class="badge text-bg-secondary">Ya calificaste este trabajo</span>
-                <?php elseif ($chat['id_calificacion'] !== null): ?>
-                    <a href="mis_calificaciones.php" class="btn btn-outline-primary btn-sm">Ver la calificación</a>
-                <?php endif; ?>
-            </div>
-
-        <?php elseif ($estadoTrabajo === 'no_solicitado'): ?>
-            <?php if ($soyCliente): ?>
-                <div class="d-flex flex-wrap align-items-center gap-2">
-                    <span class="flex-grow-1 small text-muted">
-                        Cuando se pongan de acuerdo en los detalles, confirmá la contratación.
-                    </span>
-                    <?= Vista::formAccion('contratar', $idSolicitud, 'Contratar trabajador', 'btn-success',
-                        '¿Confirmás que querés contratar a este trabajador?') ?>
-                </div>
-            <?php else: ?>
-                <span class="small text-muted">Todavía no hay un trabajo confirmado en esta conversación.</span>
-            <?php endif; ?>
-
-        <?php elseif ($estadoTrabajo === 'pendiente'): ?>
-            <?php if ($soyCliente): ?>
-                <span>⏳ Pediste contratar al trabajador. Está esperando su respuesta.</span>
-            <?php else: ?>
-                <div class="d-flex flex-wrap align-items-center gap-2">
-                    <span class="flex-grow-1"><strong>El cliente quiere contratarte para este trabajo.</strong></span>
-                    <?= Vista::formAccion('aceptar_trabajo', $idSolicitud, 'Aceptar', 'btn-success btn-sm') ?>
-                    <?= Vista::formAccion('rechazar_trabajo', $idSolicitud, 'Rechazar', 'btn-outline-danger btn-sm') ?>
-                </div>
-            <?php endif; ?>
-
-        <?php elseif ($estadoTrabajo === 'rechazado'): ?>
-            <?php if ($soyCliente): ?>
-                <div class="d-flex flex-wrap align-items-center gap-2">
-                    <span class="flex-grow-1 small">El trabajador no aceptó el trabajo. Pueden seguir conversando y volver a intentarlo.</span>
-                    <?= Vista::formAccion('contratar', $idSolicitud, 'Contratar trabajador', 'btn-success',
-                        '¿Querés volver a pedir la contratación?') ?>
-                </div>
-            <?php else: ?>
-                <span class="small text-muted">Rechazaste el último pedido de trabajo.</span>
-            <?php endif; ?>
-
-        <?php else: /* aceptado y todavía sin doble confirmación */ ?>
-            <div class="d-flex flex-wrap align-items-center gap-2">
-                <div class="flex-grow-1">
-                    🔧 <strong>Trabajo en curso.</strong>
-                    <div class="small text-muted">
-                        Cliente: <?= $chat['confirmado_cliente'] ? '✔ confirmó' : 'sin confirmar' ?> ·
-                        Trabajador: <?= $chat['confirmado_trabajador'] ? '✔ confirmó' : 'sin confirmar' ?>
-                    </div>
-                </div>
-                <?php if (!$soyCliente && !$chat['confirmado_trabajador']): ?>
-                    <!-- CU-22: botón manual del trabajador -->
-                    <?= Vista::formAccion('terminar_manual', $idSolicitud, 'Marcar trabajo como terminado', 'btn-primary btn-sm',
-                        '¿Confirmás que este trabajo está terminado?') ?>
-                <?php endif; ?>
-            </div>
-        <?php endif; ?>
-    </div>
-
-    <!-- ============ MENSAJES ============ -->
-    <div id="chat"
+    <!-- Una sola tarjeta: cabecera compacta + mensajes + caja de texto.
+         El atributo data-* lo lee assets/js/chat.js. -->
+    <div id="chat" class="chat-panel"
          data-solicitud="<?= $idSolicitud ?>"
          data-ultimo="<?= $ultimoId ?>"
          data-csrf="<?= Vista::e(Sesion::csrfToken()) ?>">
 
-        <div id="mensajes" class="chat-caja border rounded p-3 mb-3">
+        <!-- ============ CABECERA COMPACTA (con estado y botones de CU-21 / CU-22) ============ -->
+        <div class="chat-cabecera">
+            <a href="chats.php" class="btn-volver">← Volver</a>
+            <?= Vista::avatar(null,
+                $soyCliente ? $chat['trabajador_nombre'] : $chat['cliente_nombre'],
+                $soyCliente ? $chat['trabajador_apellido'] : $chat['cliente_apellido'], 40) ?>
+            <div class="chat-titulo">
+                <div class="fw-semibold text-truncate"><?= Vista::e($otraParte) ?></div>
+                <div class="small text-muted text-truncate">
+                    <?php if ($soyCliente): ?><?= Vista::e($chat['oficio']) ?> · <?php endif; ?>
+                    <?php if ($finalizado): ?>
+                        ✅ Trabajo terminado
+                    <?php elseif ($estadoTrabajo === 'no_solicitado'): ?>
+                        Sin trabajo confirmado todavía
+                    <?php elseif ($estadoTrabajo === 'pendiente'): ?>
+                        ⏳ Contratación pendiente de respuesta
+                    <?php elseif ($estadoTrabajo === 'rechazado'): ?>
+                        Trabajo no aceptado
+                    <?php else: ?>
+                        🔧 En curso · cliente <?= $chat['confirmado_cliente'] ? '✔' : '…' ?> · trabajador <?= $chat['confirmado_trabajador'] ? '✔' : '…' ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Botones compactos según el estado (siempre a la derecha de la cabecera) -->
+            <div class="chat-acciones">
+                <?php if ($finalizado): ?>
+                    <?php if ($soyCliente && $chat['id_calificacion'] === null): ?>
+                        <a href="calificar.php?id=<?= $idSolicitud ?>" class="btn btn-warning btn-sm">★ Calificar</a>
+                    <?php elseif ($soyCliente): ?>
+                        <span class="badge text-bg-secondary">Ya calificaste</span>
+                    <?php elseif ($chat['id_calificacion'] !== null): ?>
+                        <a href="mi_perfil.php#calificaciones" class="btn btn-outline-primary btn-sm">Ver calificación</a>
+                    <?php endif; ?>
+
+                <?php elseif ($estadoTrabajo === 'no_solicitado' || $estadoTrabajo === 'rechazado'): ?>
+                    <?php if ($soyCliente): ?>
+                        <!-- CU-21: el botón verde "Contratar trabajador", ahora integrado en la cabecera -->
+                        <?= Vista::formAccion('contratar', $idSolicitud, 'Contratar trabajador', 'btn-success btn-sm',
+                            '¿Confirmás que querés contratar a este trabajador?') ?>
+                    <?php endif; ?>
+
+                <?php elseif ($estadoTrabajo === 'pendiente'): ?>
+                    <?php if (!$soyCliente): ?>
+                        <?= Vista::formAccion('aceptar_trabajo', $idSolicitud, 'Aceptar', 'btn-success btn-sm') ?>
+                        <?= Vista::formAccion('rechazar_trabajo', $idSolicitud, 'Rechazar', 'btn-outline-danger btn-sm') ?>
+                    <?php endif; ?>
+
+                <?php else: /* aceptado y todavía sin doble confirmación */ ?>
+                    <?php if (!$soyCliente && !$chat['confirmado_trabajador']): ?>
+                        <!-- CU-22: botón manual del trabajador -->
+                        <?= Vista::formAccion('terminar_manual', $idSolicitud, 'Marcar como terminado', 'btn-primary btn-sm',
+                            '¿Confirmás que este trabajo está terminado?') ?>
+                    <?php endif; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- ============ MENSAJES ============ -->
+        <div id="mensajes" class="chat-caja">
             <!-- El mensaje inicial de la solicitud (CU-06) es la primera "burbuja" del cliente. -->
             <div class="msg <?= $soyCliente ? 'mio' : 'otro' ?>">
                 <div class="burbuja">
@@ -154,7 +145,7 @@ if ($chat !== null) {
             <?php endforeach; ?>
         </div>
 
-        <form id="formMensaje" class="d-flex gap-2">
+        <form id="formMensaje" class="chat-pie d-flex gap-2">
             <input type="text" id="textoMensaje" class="form-control" maxlength="2000"
                    placeholder="Escribí un mensaje…" autocomplete="off">
             <!-- CU-08 excepción 3.1: deshabilitado mientras esté vacío -->

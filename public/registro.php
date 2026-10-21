@@ -93,7 +93,11 @@ $localidades = (new Localidad($pdo))->listarTodas();
 
                 <div class="mb-3">
                     <label class="form-label">Contraseña</label>
-                    <input type="password" class="form-control" name="contrasena" required>
+                    <!-- Cambio 1.1: ojito para ver / ocultar la contraseña -->
+                    <div class="pw-wrap">
+                        <input type="password" class="form-control" name="contrasena" required>
+                        <?= Vista::ojoPassword() ?>
+                    </div>
                 </div>
 
                 <div class="mb-3">
@@ -153,5 +157,6 @@ $localidades = (new Localidad($pdo))->listarTodas();
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="assets/js/main.js"></script>
+<script src="assets/js/password.js"></script>
 </body>
 </html>

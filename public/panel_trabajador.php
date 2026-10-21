@@ -63,7 +63,7 @@ $resumen = $idTrabajador ? (new Calificacion($pdo))->resumen($idTrabajador) : ['
             </a>
         </div>
         <div class="col-md-6">
-            <a href="mis_calificaciones.php" class="text-decoration-none text-reset">
+            <a href="mi_perfil.php#calificaciones" class="text-decoration-none text-reset">
                 <div class="card shadow-sm tarjeta-trabajador h-100">
                     <div class="card-body">
                         <div class="fs-3"><?= Vista::estrellas($resumen['promedio']) ?></div>

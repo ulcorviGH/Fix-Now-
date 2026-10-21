@@ -6,7 +6,8 @@
 //     solicitudes que envió (pendiente / rechazada). Así se entera del
 //     resultado (CU-06 paso 7).
 //   - TRABAJADOR: ve sus conversaciones activas (los pedidos nuevos
-//     se responden en "Solicitudes").
+//     se responden en "Solicitudes"). Fase 8b (cambio 3.4): además ve las
+//     conversaciones donde él es el CLIENTE (cuando contrata a otro trabajador).
 // ---------------------------------------------------------------------------
 
 require_once __DIR__ . '/../src/bootstrap.php';
@@ -18,15 +19,24 @@ if (!in_array($rol, ['cliente', 'trabajador'], true)) {
     exit;
 }
 
-$todas = (new Solicitud(Database::getConexion()))->listarPorUsuario(Sesion::idUsuarioActual(), $rol);
+$yo = Sesion::idUsuarioActual();
+$modeloSolicitud = new Solicitud(Database::getConexion());
+$todas = $modeloSolicitud->listarPorUsuario($yo, $rol);
+if ($rol === 'trabajador') {
+    // Fase 8b: se suman las solicitudes donde este trabajador actúa como cliente.
+    $todas = array_merge($todas, $modeloSolicitud->listarPorUsuario($yo, 'cliente'));
+    usort($todas, fn($a, $b) => (int) $b['id_solicitud'] <=> (int) $a['id_solicitud']);
+}
 
 $activas = array_filter($todas, fn($s) => $s['estado_contacto'] === 'aceptada');
-$enviadas = array_filter($todas, fn($s) => $s['estado_contacto'] !== 'aceptada');
+// "Solicitudes enviadas": solo las que YO envié como cliente (en el rol de trabajador
+// las solicitudes recibidas se responden en la pantalla "Solicitudes").
+$enviadas = array_filter($todas, fn($s) => $s['estado_contacto'] !== 'aceptada' && (int) $s['id_usuario'] === $yo);
 
-/** Nombre de la otra persona según mi rol. */
-function otraParte(array $s, string $rol): string
+/** Nombre de la otra persona: si yo soy el cliente de esa solicitud, es el trabajador; si no, el cliente. */
+function otraParte(array $s, int $yo): string
 {
-    return $rol === 'cliente'
+    return ((int) $s['id_usuario'] === $yo)
         ? $s['trabajador_nombre'] . ' ' . $s['trabajador_apellido']
         : $s['cliente_nombre'] . ' ' . $s['cliente_apellido'];
 }
@@ -65,10 +75,9 @@ function etiquetaTrabajo(array $s): string
         <!-- CU-08 excepción 2.1 -->
         <div class="alert alert-info">
             No tenés conversaciones aún.
-            <?php if ($rol === 'cliente'): ?>
-                <a href="panel_cliente.php" class="alert-link">Buscá un trabajador</a> y enviale un mensaje.
-            <?php else: ?>
-                Cuando aceptes una solicitud de chat aparecerá acá.
+            <a href="panel_cliente.php" class="alert-link">Buscá un trabajador</a> y solicitale un servicio.
+            <?php if ($rol === 'trabajador'): ?>
+                Cuando aceptes una solicitud de chat también aparecerá acá.
             <?php endif; ?>
         </div>
     <?php else: ?>
@@ -76,7 +85,7 @@ function etiquetaTrabajo(array $s): string
             <?php foreach ($activas as $s): ?>
                 <a href="chat.php?id=<?= (int) $s['id_solicitud'] ?>" class="list-group-item list-group-item-action">
                     <div class="d-flex justify-content-between flex-wrap gap-1">
-                        <strong><?= Vista::e(otraParte($s, $rol)) ?></strong>
+                        <strong><?= Vista::e(otraParte($s, $yo)) ?></strong>
                         <?= etiquetaTrabajo($s) ?>
                     </div>
                     <div class="small text-muted text-truncate">
@@ -87,13 +96,13 @@ function etiquetaTrabajo(array $s): string
         </div>
     <?php endif; ?>
 
-    <?php if ($rol === 'cliente' && !empty($enviadas)): ?>
+    <?php if (!empty($enviadas)): ?>
         <h2 class="h6 text-uppercase text-muted">Solicitudes enviadas</h2>
         <div class="list-group shadow-sm">
             <?php foreach ($enviadas as $s): ?>
                 <div class="list-group-item">
                     <div class="d-flex justify-content-between flex-wrap gap-1">
-                        <strong><?= Vista::e(otraParte($s, $rol)) ?></strong>
+                        <strong><?= Vista::e(otraParte($s, $yo)) ?></strong>
                         <?php if ($s['estado_contacto'] === 'pendiente'): ?>
                             <span class="badge text-bg-warning">Esperando respuesta</span>
                         <?php else: ?>

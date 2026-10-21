@@ -49,6 +49,12 @@ class SolicitudController
             return self::error('Este perfil no está disponible.');
         }
 
+        // Fase 8b (cambio 3.4): un trabajador puede contratar a OTRO trabajador usando
+        // su misma cuenta, pero nunca a sí mismo.
+        if ($modeloTrabajador->obtenerIdPorUsuario($idUsuarioCliente) === $idTrabajador) {
+            return self::error('No podés enviarte una solicitud a vos mismo.');
+        }
+
         // Precondición: el trabajador cubre alguna localidad del cliente.
         $localidad = (new Localidad($pdo))->obtenerDeUsuario($idUsuarioCliente);
         if ($localidad === null || !$modeloTrabajador->cubreLocalidad($idTrabajador, (int) $localidad['id_localidad'])) {

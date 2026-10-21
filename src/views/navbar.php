@@ -27,9 +27,23 @@ if ($rolNav === 'trabajador') {
         $pendientesNav = $solicitudNav->contarPendientes($idTrabajadorNav);
     }
 }
-if ($rolNav === 'cliente' || $rolNav === 'trabajador') {
-    $preguntasNav = $solicitudNav->preguntasFinalizacionPendientes($idUsuarioNav, $rolNav);
+if ($rolNav === 'cliente') {
+    $preguntasNav = $solicitudNav->preguntasFinalizacionPendientes($idUsuarioNav, 'cliente');
+} elseif ($rolNav === 'trabajador') {
+    // Fase 8b (cambio 3.4): un trabajador recibe las preguntas de los trabajos que le
+    // contrataron (como trabajador) Y las de los que él contrató (actuando como cliente).
+    $preguntasNav = array_merge(
+        $solicitudNav->preguntasFinalizacionPendientes($idUsuarioNav, 'trabajador'),
+        $solicitudNav->preguntasFinalizacionPendientes($idUsuarioNav, 'cliente')
+    );
 }
+
+// Fase 8b (cambio 1.3): datos para la miniatura y el nombre del menú de perfil.
+// Solo los trabajadores tienen foto; el resto muestra sus iniciales.
+$usuarioNav = (new Usuario($pdoNav))->buscarPorId($idUsuarioNav) ?? ['nombre' => '', 'apellido' => ''];
+$fotoNav = ($rolNav === 'trabajador') ? (new Trabajador($pdoNav))->fotoDeUsuario($idUsuarioNav) : null;
+// A dónde lleva el perfil según el rol: el trabajador tiene "Mi perfil"; cliente y admin, "Mi cuenta".
+$perfilNav = ($rolNav === 'trabajador') ? 'mi_perfil.php' : 'mi_cuenta.php';
 $totalPendientesNav = (int) $pendientesNav['contactos'] + (int) $pendientesNav['trabajos'];
 
 // Fase 7: el Administrador ve en el menú cuánto tiene esperando revisión.
@@ -46,10 +60,12 @@ if ($rolNav === 'admin') {
 
         <ul class="navbar-nav me-auto">
             <?php if ($rolNav === 'cliente'): ?>
-                <li class="nav-item"><a class="nav-link" href="panel_cliente.php">Buscar</a></li>
+                <li class="nav-item"><a class="nav-link" href="panel_cliente.php">Inicio</a></li>
                 <li class="nav-item"><a class="nav-link" href="chats.php">Mis chats</a></li>
                 <li class="nav-item"><a class="nav-link" href="mis_trabajos.php">Mis trabajos</a></li>
             <?php elseif ($rolNav === 'trabajador'): ?>
+                <!-- Fase 8b (cambio 3.4): el trabajador también puede buscar y contratar a otros -->
+                <li class="nav-item"><a class="nav-link" href="panel_cliente.php">Inicio</a></li>
                 <li class="nav-item">
                     <a class="nav-link" href="solicitudes.php">
                         Solicitudes
@@ -60,7 +76,7 @@ if ($rolNav === 'admin') {
                 </li>
                 <li class="nav-item"><a class="nav-link" href="chats.php">Chats</a></li>
                 <li class="nav-item"><a class="nav-link" href="mi_perfil.php">Mi perfil</a></li>
-                <li class="nav-item"><a class="nav-link" href="mis_calificaciones.php">Mis calificaciones</a></li>
+                <!-- Fase 8b (cambio 3.3): "Mis calificaciones" ahora vive dentro de "Mi perfil" -->
             <?php elseif ($rolNav === 'admin'): ?>
                 <?php
                 // Fase 7: menú del Administrador. Cada ítem muestra un globito rojo si hay algo pendiente.
@@ -69,7 +85,7 @@ if ($rolNav === 'admin') {
                     ['admin_usuarios.php',       'Usuarios',               0],
                     ['admin_moderacion.php',     'Moderar contenido',      $adminNav['contenido']],
                     ['admin_calificaciones.php', 'Calificaciones',         $adminNav['calificaciones']],
-                    ['admin_reportes.php',       'Reportes',               0],
+                    ['admin_reportes.php',       'Estadísticas',           0],
                 ];
                 ?>
                 <?php foreach ($itemsAdmin as [$enlace, $texto, $cantidad]): ?>
@@ -85,14 +101,13 @@ if ($rolNav === 'admin') {
             <?php endif; ?>
         </ul>
 
-        <div class="d-flex align-items-center gap-3">
-            <span class="text-muted small d-none d-md-inline">Hola, <?= Vista::e($_SESSION['nombre'] ?? '') ?></span>
-            <!-- Fase 8: cerrar sesión es un POST con token CSRF, no un simple enlace -->
-            <form method="post" action="logout.php" class="d-inline">
-                <?= Vista::campoCsrf() ?>
-                <button type="submit" class="btn btn-outline-danger btn-sm">Cerrar sesión</button>
-            </form>
-        </div>
+        <?php /* Fase 8b (cambio 1.3): miniatura circular + nombre; es un enlace al perfil.
+                 El botón de salir ya no está acá: se movió al final de la vista de perfil (cambio 1.4). */ ?>
+        <a href="<?= Vista::e($perfilNav) ?>" class="perfil-nav d-flex align-items-center gap-2 text-decoration-none"
+           title="Ir a mi perfil">
+            <?= Vista::avatar($fotoNav, (string) $usuarioNav['nombre'], (string) $usuarioNav['apellido'], 36) ?>
+            <span class="perfil-nav-nombre small fw-semibold d-none d-sm-inline"><?= Vista::e($usuarioNav['nombre']) ?></span>
+        </a>
     </div>
 </nav>
 
@@ -106,7 +121,9 @@ if ($rolNav === 'admin') {
 
     <?php foreach ($preguntasNav as $p): ?>
         <?php
-        $otraParte = ($rolNav === 'cliente')
+        // Fase 8b: se decide por la solicitud (no por el rol de la cuenta), porque un
+        // trabajador puede ser el cliente en unas y el trabajador en otras.
+        $otraParte = ((int) $p['id_usuario'] === $idUsuarioNav)
             ? $p['trabajador_nombre'] . ' ' . $p['trabajador_apellido']
             : $p['cliente_nombre'] . ' ' . $p['cliente_apellido'];
         ?>

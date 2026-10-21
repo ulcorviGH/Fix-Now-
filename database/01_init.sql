@@ -42,6 +42,11 @@ CREATE TABLE USUARIO (
     bloqueado_hasta   DATETIME NULL,
     -- Fase 7 (CU-16): fecha del último inicio de sesión, para "usuarios activos último mes".
     ultimo_acceso     DATETIME NULL,
+    -- Fase 8b (geolocalización): coordenadas propias del usuario (hoy se usan para
+    -- ubicar a los TRABAJADORES en la búsqueda por radio). NULL = se usa la
+    -- ubicación de las localidades donde trabaja.
+    latitud           DECIMAL(9,6) NULL,
+    longitud          DECIMAL(9,6) NULL,
     FOREIGN KEY (id_localidad) REFERENCES LOCALIDAD(id_localidad)
 ) ENGINE=InnoDB;
 

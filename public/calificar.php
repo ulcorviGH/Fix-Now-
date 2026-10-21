@@ -10,7 +10,8 @@
 
 require_once __DIR__ . '/../src/bootstrap.php';
 
-Sesion::requerirRol('cliente');
+// Fase 8b (cambio 3.4): cliente Y trabajador (un trabajador puede actuar como cliente).
+Sesion::requerirRoles(['cliente', 'trabajador']);
 
 $idCliente = Sesion::idUsuarioActual();
 $idSolicitud = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
@@ -58,7 +59,7 @@ $s = $estado['solicitud'];
 
     <?php if (!$estado['puede']): ?>
         <div class="alert alert-warning"><?= Vista::e($estado['mensaje']) ?></div>
-        <a href="mis_trabajos.php" class="btn btn-outline-secondary">← Volver a mis trabajos</a>
+        <a href="mis_trabajos.php" class="btn-volver">← Volver</a>
 
     <?php else: ?>
         <div class="card shadow-sm">

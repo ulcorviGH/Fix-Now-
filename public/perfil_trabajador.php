@@ -7,7 +7,8 @@
 
 require_once __DIR__ . '/../src/bootstrap.php';
 
-Sesion::requerirRol('cliente');
+// Fase 8b (cambio 3.4): cliente Y trabajador (un trabajador puede actuar como cliente).
+Sesion::requerirRoles(['cliente', 'trabajador']);
 
 // (int) convierte cualquier cosa rara que venga en la URL en un número,
 // así nadie puede inyectar texto malicioso por acá.
@@ -36,7 +37,7 @@ $vigente = $perfil !== null
 
 <div class="container pb-5" style="max-width: 860px;">
 
-    <a href="panel_cliente.php" class="btn btn-link px-0 mb-2">← Volver a la lista</a>
+    <a href="panel_cliente.php" class="btn-volver mb-2">← Volver</a>
 
     <?php if ($perfil === null): ?>
         <!-- CU-04 excepción 2.2 -->
@@ -60,9 +61,12 @@ $vigente = $perfil !== null
                     <div class="small mt-1">✔ Trabajos completados: <strong><?= (int) $perfil['trabajos_completados'] ?></strong></div>
                 </div>
                 <div>
-                    <!-- CU-04 paso 3a: 'Enviar mensaje' inicia CU-06 -->
-                    <?php if ($vigente === null): ?>
-                        <a href="contactar.php?id=<?= $idTrabajador ?>" class="btn btn-primary">Enviar mensaje</a>
+                    <?php /* CU-04 paso 3a: el botón principal inicia CU-06. Cambio 3.1 de la Fase 8b: cambió su texto. */ ?>
+                    <?php if ((int) $perfil['id_usuario'] === Sesion::idUsuarioActual()): ?>
+                        <?php /* Fase 8b: un trabajador que mira su propio perfil público no se puede contratar a sí mismo */ ?>
+                        <span class="badge text-bg-secondary">Este es tu perfil</span>
+                    <?php elseif ($vigente === null): ?>
+                        <a href="contactar.php?id=<?= $idTrabajador ?>" class="btn btn-primary">Solicitar servicio</a>
                     <?php elseif ($vigente['estado_contacto'] === 'aceptada'): ?>
                         <a href="chat.php?id=<?= (int) $vigente['id_solicitud'] ?>" class="btn btn-success">Ir al chat</a>
                     <?php else: ?>
