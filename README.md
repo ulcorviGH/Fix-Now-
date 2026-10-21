@@ -14,15 +14,6 @@ Práctica Profesionalizante 2 — Corvi Ulises.
 | Servidor | Apache, dentro de Docker Compose (3 contenedores) |
 | Control de versiones | Git + GitHub |
 
-## Estado del proyecto
-
-- [x] Fases 1-2: Docker + base de datos (11 tablas)
-- [x] Fase 3: registro e inicio de sesión (CU-01, CU-02)
-- [x] Fase 4: lista por cercanía, buscador y perfil público (CU-03, CU-04)
-- [x] Fase 5: contacto, chat, contratación y finalización (CU-06, CU-08, CU-11, CU-21, CU-22)
-- [x] Fase 6: calificaciones y respuestas (CU-07, CU-12, CU-20)
-- [x] Fase 7: panel del Administrador y "Mi perfil" del Trabajador (CU-09, 10, 13 a 19)
-- [x] **Fase 8: seguridad, pulido visual y documentación final** (los 22 casos de uso implementados)
 
 ## Instalación desde cero (una computadora nueva)
 
@@ -62,36 +53,9 @@ docker compose up -d --build
 | Trabajador | nicolas@fixnow.com | trabajador123 | pendiente de habilitación |
 | Trabajador | ariana@fixnow.com | trabajador123 | pendiente de habilitación |
 
-> Son solo para desarrollo y demostración. **Cambiá o eliminá estas cuentas antes de publicar el sitio.**
 
-## Guía rápida de prueba
 
-1. **Cliente → trabajador:** entrá como `cliente@`, abrí el perfil de Carlos, "Enviar mensaje".
-2. Entrá como `trabajador@` → *Solicitudes* → **Aceptar** el chat. Chateen entre los dos.
-3. Como cliente, en el chat: **Contratar trabajador**. Como trabajador: aceptar en *Solicitudes de trabajo*.
-4. El trabajador pulsa **Marcar trabajo como terminado**; el cliente responde "Sí" a la pregunta
-   que aparece arriba. Recién ahí se habilita **Calificar**.
-5. Como trabajador: *Mis calificaciones* → responder o reportar la reseña.
-6. Como `admin@`: habilitar a Nicolás, moderar la reseña reportada, ver *Reportes*.
 
-Para probar rápido la pregunta "¿Ya se completó?" poné `DIAS_PRIMERA_PREGUNTA = 0` en
-`src/config/Config.php` (el valor real es 2 días).
-
-## Comandos útiles (parado en la carpeta de `docker-compose.yml`)
-
-| Comando | Para qué |
-|---|---|
-| `docker compose up -d` | Encender (uso diario) |
-| `docker compose up -d --build` | Encender reconstruyendo la imagen (solo si cambió el Dockerfile) |
-| `docker compose stop` | Apagar sin borrar nada |
-| `docker compose logs -f app` | Ver los errores de PHP (en pantalla ya no se muestran) |
-| `docker compose down -v` | **BORRA LA BASE DE DATOS** y empieza de cero |
-
-## Si tenés una base ya creada (actualizar sin borrar)
-
-La Fase 8 **no cambia el esquema**: no hay SQL nuevo. Solo cambió el Dockerfile, por eso hay que
-correr una vez `docker compose up -d --build`. Los scripts de `database/migraciones/` son para
-actualizar bases viejas en phpMyAdmin: `fase5_alter.sql`, `fase7_alter.sql`, `fase7b_calificaciones_eliminadas.sql`.
 
 ## Seguridad (resumen)
 
