@@ -33,7 +33,9 @@ class AuthController
         $contrasena = $texto('contrasena');
         $idLocalidad = $texto('id_localidad');
         $esTrabajador = $texto('es_trabajador') === 'si';
-        $oficio = trim($texto('oficio'));
+        // Fase 9 (punto 7): los oficios llegan como LISTA de ids del catálogo (oficios[])
+        // y las zonas como lista de ids (localidades_trabajo[], armada por el autocompletado).
+        $oficiosElegidos = $post['oficios'] ?? [];
         $localidadesTrabajo = $post['localidades_trabajo'] ?? [];
 
         if ($nombre === '' || $apellido === '' || $mail === '' || $contrasena === '' || $idLocalidad === '') {
@@ -52,9 +54,6 @@ class AuthController
         if (mb_strlen($mail) > 120) {
             $errores[] = 'El mail puede tener hasta 120 caracteres.';
         }
-        if (mb_strlen($oficio) > 80) {
-            $errores[] = 'El oficio puede tener hasta 80 caracteres.';
-        }
 
         // Fase 8: contraseña mínima (8) y máxima (72 bytes: bcrypt ignora el resto).
         if ($contrasena !== '' && mb_strlen($contrasena) < Config::MIN_LARGO_CONTRASENA) {
@@ -66,30 +65,28 @@ class AuthController
 
         // Fase 8: los datos deben tener la forma esperada (alguien puede armar
         // el POST a mano con texto donde va una lista, o una localidad inexistente).
-        if (!is_array($localidadesTrabajo)) {
-            $localidadesTrabajo = [];
-        }
         if ($idLocalidad !== '' && !(new Localidad($pdo))->existe((int) $idLocalidad)) {
             $errores[] = 'La localidad elegida no es válida.';
         }
-        $localidadesTrabajo = array_values(array_unique(array_map('intval', $localidadesTrabajo)));
+        // Fase 9: la validación de oficios y zonas vive en CatalogoController (la comparte con Mi perfil).
+        $oficiosIds = [];
+        $oficioTexto = '';
+        $zonasIds = [];
 
         // Reglas extra si se registra como Trabajador (CU-01, sección "SI"):
         if ($esTrabajador) {
-            if ($oficio === '') {
-                $errores[] = 'Debe indicar su profesión/oficio.';
-            }
-            if (empty($localidadesTrabajo)) {
-                $errores[] = 'Debe seleccionar al menos una localidad de trabajo.';
+            $oficios = CatalogoController::resolverOficios($oficiosElegidos);
+            if ($oficios['error'] !== null) {
+                $errores[] = $oficios['error'];
             } else {
-                // Fase 8: cada zona elegida debe existir en el catálogo.
-                $modeloLocalidad = new Localidad($pdo);
-                foreach ($localidadesTrabajo as $idZona) {
-                    if (!$modeloLocalidad->existe((int) $idZona)) {
-                        $errores[] = 'Una de las localidades de trabajo no es válida.';
-                        break;
-                    }
-                }
+                $oficiosIds = $oficios['ids'];
+                $oficioTexto = $oficios['texto'];
+            }
+            $zonas = CatalogoController::resolverLocalidades($localidadesTrabajo);
+            if ($zonas['error'] !== null) {
+                $errores[] = $zonas['error'];
+            } else {
+                $zonasIds = $zonas['ids'];
             }
         }
 
@@ -136,8 +133,9 @@ class AuthController
 
             if ($esTrabajador) {
                 $modeloTrabajador = new Trabajador($pdo);
-                $idTrabajador = $modeloTrabajador->crear($idUsuario, $oficio);
-                $modeloTrabajador->asignarLocalidades($idTrabajador, $localidadesTrabajo);
+                $idTrabajador = $modeloTrabajador->crear($idUsuario, $oficioTexto);
+                $modeloTrabajador->reemplazarOficios($idTrabajador, $oficiosIds);   // Fase 9: varios oficios
+                $modeloTrabajador->asignarLocalidades($idTrabajador, $zonasIds);
             }
 
             $pdo->commit();

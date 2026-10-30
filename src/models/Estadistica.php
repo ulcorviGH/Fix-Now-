@@ -71,4 +71,22 @@ class Estadistica
             'calificaciones_reportadas' => (int) $this->valor('SELECT COUNT(*) FROM CALIFICACION WHERE reportada = TRUE'),
         ];
     }
+
+    /**
+     * Fase 9 (punto 4): números del mini-panel de "Mi cuenta" del CLIENTE.
+     *   - contratados: trabajos que formalizó con "Contratar trabajador" (CU-21)
+     *   - completados: los que quedaron confirmados por AMBAS partes
+     *   - resenas:     calificaciones que escribió (CU-07)
+     */
+    public function delCliente(int $idUsuario): array
+    {
+        return [
+            'contratados' => (int) $this->valor(
+                "SELECT COUNT(*) FROM SOLICITUD WHERE id_usuario = ? AND estado_trabajo <> 'no_solicitado'", [$idUsuario]),
+            'completados' => (int) $this->valor(
+                'SELECT COUNT(*) FROM SOLICITUD WHERE id_usuario = ? AND confirmado_cliente = TRUE AND confirmado_trabajador = TRUE', [$idUsuario]),
+            'resenas' => (int) $this->valor(
+                'SELECT COUNT(*) FROM CALIFICACION WHERE id_usuario = ?', [$idUsuario]),
+        ];
+    }
 }

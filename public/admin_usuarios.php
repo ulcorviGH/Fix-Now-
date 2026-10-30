@@ -13,9 +13,10 @@ Sesion::requerirRol('admin');
 // Filtros que llegan por la URL (GET). Cualquier valor raro simplemente no filtra.
 $rol = Seguridad::texto($_GET['rol'] ?? '');
 $estado = Seguridad::texto($_GET['estado'] ?? '');
-$texto = trim(Seguridad::texto($_GET['texto'] ?? ''));
+// Fase 9 (punto 8): el campo se llama "q" (antes "texto"); se acepta también el nombre viejo por si hay enlaces guardados.
+$filtroTexto = trim(Seguridad::texto($_GET['q'] ?? ($_GET['texto'] ?? '')));
 
-$usuarios = (new Usuario(Database::getConexion()))->listarParaAdmin($rol, $estado, $texto);
+$usuarios = (new Usuario(Database::getConexion()))->listarParaAdmin($rol, $estado, $filtroTexto);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -37,8 +38,11 @@ $usuarios = (new Usuario(Database::getConexion()))->listarParaAdmin($rol, $estad
     <!-- Filtros: method="get" para que queden en la URL y se puedan compartir/recargar -->
     <form method="get" class="row g-2 mb-3">
         <div class="col-md-4">
-            <input type="text" name="texto" class="form-control form-control-sm" placeholder="Buscar por nombre o mail"
-                   value="<?= Vista::e($texto) ?>">
+            <?php /* Fase 9 (punto 8): arranca VACÍO. Se rellenaba con "Estadísticas" porque la navbar pisaba la variable
+               $texto (ver src/views/navbar.php). Ahora la navbar está aislada y el filtro tiene nombre propio.
+               Además el campo se llama "q" y tiene el autocompletado del navegador desactivado. */ ?>
+            <input type="search" name="q" class="form-control form-control-sm" placeholder="Buscar por nombre o mail"
+                   value="<?= Vista::e($filtroTexto) ?>" autocomplete="off" autocapitalize="off" spellcheck="false">
         </div>
         <div class="col-6 col-md-2">
             <select name="rol" class="form-select form-select-sm">

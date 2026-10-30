@@ -18,7 +18,7 @@ $trabajos = (new Solicitud(Database::getConexion()))->listarTrabajosDeCliente(Se
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>FixNow - Mis trabajos</title>
+    <title>FixNow - <?= Sesion::rolActual() === 'trabajador' ? 'Mis contrataciones' : 'Mis trabajos' ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/estilos.css">
     <link rel="icon" type="image/png" href="assets/img/favicon.png">
@@ -28,7 +28,14 @@ $trabajos = (new Solicitud(Database::getConexion()))->listarTrabajosDeCliente(Se
 <?php require __DIR__ . '/../src/views/navbar.php'; ?>
 
 <div class="container pb-5" style="max-width: 860px;">
-    <h1 class="h5 mb-3">Mis trabajos</h1>
+    <?php /* Fase 9 (punto 6): el trabajador usa esta misma pantalla para los servicios que contrató a otros */
+    $esTrabajador = Sesion::rolActual() === 'trabajador'; ?>
+    <h1 class="h5 mb-1"><?= $esTrabajador ? 'Mis contrataciones' : 'Mis trabajos' ?></h1>
+    <?php if ($esTrabajador): ?>
+        <p class="text-muted small mb-3">Servicios que le pediste a otros trabajadores. Los trabajos que te piden a vos están en <a href="solicitudes.php">Solicitudes</a>.</p>
+    <?php else: ?>
+        <div class="mb-3"></div>
+    <?php endif; ?>
 
     <?php if (empty($trabajos)): ?>
         <div class="alert alert-info">

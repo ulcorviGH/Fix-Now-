@@ -67,7 +67,11 @@ class TrabajadorController
 
         return [
             'perfil'          => $perfil,
-            'localidades'     => (new Localidad($pdo))->listarTodas(),
+            // Fase 9: ya no se cargan TODAS las localidades; solo las que el trabajador ya eligió
+            // (el resto se busca con el autocompletado).
+            'localidades_elegidas' => (new Localidad($pdo))->porIds($idsLocalidades),
+            'oficios'         => (new Oficio($pdo))->listarTodos(),
+            'ids_oficios'     => $modelo->idsOficios($idTrabajador),
             'ids_localidades' => $idsLocalidades,
             'servicios'       => (new Servicio($pdo))->listarDeTrabajador($idTrabajador),
             'imagenes'        => (new Imagen($pdo))->listarDeTrabajador($idTrabajador),
@@ -91,17 +95,19 @@ class TrabajadorController
         $pdo = Database::getConexion();
 
         // Fase 8: Seguridad::texto() descarta listas armadas a mano (evita error 500).
-        $oficio = trim(Seguridad::texto($post['oficio'] ?? ''));
         $descripcion = trim(Seguridad::texto($post['descripcion'] ?? ''));
         $aniosTexto = trim(Seguridad::texto($post['anios_experiencia'] ?? ''));
 
         // Excepción 4.1: campos obligatorios.
-        if ($oficio === '' || $descripcion === '') {
+        if ($descripcion === '') {
             return self::error('Campos obligatorios sin completar: oficio y descripción.');
         }
-        if (mb_strlen($oficio) > 80) {
-            return self::error('El oficio es demasiado largo (máximo 80 caracteres).');
+        // Fase 9 (punto 7): selección MÚLTIPLE de oficios (lista de ids del catálogo).
+        $oficios = CatalogoController::resolverOficios($post['oficios'] ?? []);
+        if ($oficios['error'] !== null) {
+            return self::error($oficios['error']);
         }
+        $oficio = $oficios['texto'];   // "Gasista, Plomero": resumen que se guarda en TRABAJADOR.oficio
         if (mb_strlen($descripcion) > 2000) {
             return self::error('La descripción es demasiado larga (máximo 2000 caracteres).');
         }
@@ -115,15 +121,13 @@ class TrabajadorController
             }
         }
 
-        // Excepción 3.2: al menos una localidad, y todas deben existir de verdad.
-        $elegidas = array_values(array_unique(array_map('intval', (array) ($post['localidades'] ?? []))));
-        if (empty($elegidas)) {
-            return self::error('Debe seleccionar al menos una localidad.');
+        // Excepción 3.2: al menos una localidad, y todas deben existir de verdad
+        // (Fase 9: las elige el autocompletado y se validan contra el catálogo).
+        $zonas = CatalogoController::resolverLocalidades($post['localidades'] ?? []);
+        if ($zonas['error'] !== null) {
+            return self::error($zonas['error']);
         }
-        $existentes = array_map('intval', array_column((new Localidad($pdo))->listarTodas(), 'id_localidad'));
-        if (array_diff($elegidas, $existentes) !== []) {
-            return self::error('Alguna de las localidades elegidas no es válida.');
-        }
+        $elegidas = $zonas['ids'];
 
         // Foto de perfil (opcional). Se procesa DESPUÉS de validar los textos,
         // para no dejar un archivo guardado si el resto del formulario estaba mal.
@@ -145,6 +149,7 @@ class TrabajadorController
         $pdo->beginTransaction();
         try {
             $modelo->actualizarPerfil($idTrabajador, $oficio, $descripcion, $anios);
+            $modelo->reemplazarOficios($idTrabajador, $oficios['ids']);   // Fase 9
             $modelo->reemplazarLocalidades($idTrabajador, $elegidas);
             if ($rutaNueva !== null) {
                 $modelo->actualizarFoto($idTrabajador, $rutaNueva);

@@ -214,4 +214,33 @@ class Usuario
         $consulta->execute([$idUsuario]);
         return $consulta->rowCount() > 0;
     }
+
+    // ------------------------------------------------------------------
+    // Fase 9 (punto 4): el propio usuario edita su perfil y su contraseña.
+    // ------------------------------------------------------------------
+
+    /** Hash bcrypt guardado de la contraseña (para verificar la contraseña actual). Null si no existe. */
+    public function obtenerHashContrasena(int $idUsuario): ?string
+    {
+        $consulta = $this->pdo->prepare('SELECT contrasena FROM USUARIO WHERE id_usuario = ?');
+        $consulta->execute([$idUsuario]);
+        $hash = $consulta->fetchColumn();
+        return $hash === false ? null : (string) $hash;
+    }
+
+    /** Actualiza nombre, apellido y localidad principal del usuario. */
+    public function actualizarDatos(int $idUsuario, string $nombre, string $apellido, int $idLocalidad): void
+    {
+        $consulta = $this->pdo->prepare(
+            'UPDATE USUARIO SET nombre = ?, apellido = ?, id_localidad = ? WHERE id_usuario = ?'
+        );
+        $consulta->execute([$nombre, $apellido, $idLocalidad, $idUsuario]);
+    }
+
+    /** Guarda un hash nuevo de contraseña. */
+    public function cambiarContrasena(int $idUsuario, string $hashNuevo): void
+    {
+        $consulta = $this->pdo->prepare('UPDATE USUARIO SET contrasena = ? WHERE id_usuario = ?');
+        $consulta->execute([$hashNuevo, $idUsuario]);
+    }
 }

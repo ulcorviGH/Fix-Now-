@@ -19,7 +19,9 @@ CREATE TABLE LOCALIDAD (
     nombre       VARCHAR(80) NOT NULL,
     provincia    VARCHAR(60) NOT NULL,
     latitud      DECIMAL(9,6) NOT NULL,   -- usada para calcular cercanía (CU-03)
-    longitud     DECIMAL(9,6) NOT NULL
+    longitud     DECIMAL(9,6) NOT NULL,
+    -- Fase 9: una localidad no se repite (el autocompletado y la carga masiva dependen de esto)
+    UNIQUE KEY uq_localidad_nombre_provincia (nombre, provincia)
 ) ENGINE=InnoDB;
 
 -- =============================================================
@@ -81,6 +83,22 @@ CREATE TABLE ADMINISTRADOR (
 -- TABLA: TRABAJADOR_LOCALIDAD
 -- Tabla intermedia N:N -> un trabajador puede cubrir varias zonas (CU-09)
 -- =============================================================
+-- Fase 9: catálogo de oficios y relación N:N con TRABAJADOR (un trabajador puede ser
+-- Plomero y Gasista a la vez). TRABAJADOR.oficio se sigue guardando como TEXTO resumen
+-- ("Plomero, Gasista") para la lista, el perfil y el buscador.
+CREATE TABLE OFICIO (
+    id_oficio INT AUTO_INCREMENT PRIMARY KEY,
+    nombre    VARCHAR(80) NOT NULL UNIQUE
+) ENGINE=InnoDB;
+
+CREATE TABLE TRABAJADOR_OFICIO (
+    id_trabajador INT NOT NULL,
+    id_oficio     INT NOT NULL,
+    PRIMARY KEY (id_trabajador, id_oficio),
+    FOREIGN KEY (id_trabajador) REFERENCES TRABAJADOR(id_trabajador) ON DELETE CASCADE,
+    FOREIGN KEY (id_oficio) REFERENCES OFICIO(id_oficio) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 CREATE TABLE TRABAJADOR_LOCALIDAD (
     id_trabajador INT NOT NULL,
     id_localidad  INT NOT NULL,

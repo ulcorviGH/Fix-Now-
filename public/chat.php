@@ -48,15 +48,18 @@ if ($chat !== null) {
     <link rel="stylesheet" href="assets/css/estilos.css">
     <link rel="icon" type="image/png" href="assets/img/favicon.png">
 </head>
-<body class="bg-light">
+<!-- Fase 9 (punto 2): chat a pantalla completa, sin fondo exterior (estilo WhatsApp Web) -->
+<body class="chat-pantalla">
 
 <?php require __DIR__ . '/../src/views/navbar.php'; ?>
 
-<div class="container pb-3" style="max-width: 900px;">
+<main class="chat-fullscreen">
 
 <?php if ($chat === null): ?>
-    <a href="chats.php" class="btn-volver mb-2">← Volver</a>
-    <div class="alert alert-warning">Esta conversación no está disponible.</div>
+    <div class="container py-3">
+        <a href="chats.php" class="btn-volver mb-2">← Volver</a>
+        <div class="alert alert-warning">Esta conversación no está disponible.</div>
+    </div>
 
 <?php else: ?>
 
@@ -105,7 +108,7 @@ if ($chat !== null) {
                 <?php elseif ($estadoTrabajo === 'no_solicitado' || $estadoTrabajo === 'rechazado'): ?>
                     <?php if ($soyCliente): ?>
                         <!-- CU-21: el botón verde "Contratar trabajador", ahora integrado en la cabecera -->
-                        <?= Vista::formAccion('contratar', $idSolicitud, 'Contratar trabajador', 'btn-success btn-sm',
+                        <?= Vista::formAccion('contratar', $idSolicitud, 'Contratar trabajador', 'btn-outline-success btn-sm btn-icono-contratar',
                             '¿Confirmás que querés contratar a este trabajador?') ?>
                     <?php endif; ?>
 
@@ -154,7 +157,7 @@ if ($chat !== null) {
     </div>
 
 <?php endif; ?>
-</div>
+</main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="assets/js/chat.js"></script>

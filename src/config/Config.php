@@ -52,4 +52,16 @@ class Config
     // Antispam del chat (CU-08): máximo de mensajes que una persona puede enviar
     // en una ventana de 60 segundos. Con 0 se desactiva el límite.
     public const MAX_MENSAJES_POR_MINUTO = 30;
+
+    // -----------------------------------------------------------------
+    // Fase 9. Topes agregados (no figuran en los casos de uso).
+    // -----------------------------------------------------------------
+
+    // Cuántos oficios puede elegir un trabajador y cuántas localidades de trabajo.
+    // (Los nombres de los oficios se guardan juntos en TRABAJADOR.oficio, de 80 caracteres.)
+    public const MAX_OFICIOS_POR_TRABAJADOR = 4;
+    public const MAX_LOCALIDADES_TRABAJO = 20;
+
+    // Texto que hay que escribir para confirmar la eliminación de la propia cuenta.
+    public const PALABRA_ELIMINAR_CUENTA = 'ELIMINAR';
 }

@@ -51,4 +51,39 @@ class Localidad
         $consulta->execute([$idLocalidad]);
         return $consulta->fetchColumn() !== false;
     }
+
+    /**
+     * Fase 9 (punto 7): búsqueda para el AUTOCOMPLETADO de localidades.
+     * Devuelve hasta $limite localidades cuyo nombre contenga el texto, primero las
+     * que EMPIEZAN con él. Se escapan % y _ (con '|') para que se busquen como letras.
+     * La comparación no distingue mayúsculas ni tildes (lo resuelve la collation).
+     */
+    public function buscar(string $texto, int $limite = 10): array
+    {
+        $limite = max(1, min(25, (int) $limite));
+        $escapado = str_replace(['|', '%', '_'], ['||', '|%', '|_'], $texto);
+        $consulta = $this->pdo->prepare(
+            "SELECT id_localidad, nombre, provincia
+               FROM LOCALIDAD
+              WHERE nombre LIKE ? ESCAPE '|'
+              ORDER BY (nombre LIKE ? ESCAPE '|') DESC, CHAR_LENGTH(nombre) ASC, nombre ASC
+              LIMIT {$limite}"
+        );
+        $consulta->execute(['%' . $escapado . '%', $escapado . '%']);
+        return $consulta->fetchAll();
+    }
+
+    /** Fase 9: datos (id, nombre, provincia) de las localidades indicadas; descarta ids inexistentes. */
+    public function porIds(array $ids): array
+    {
+        if (empty($ids)) {
+            return [];
+        }
+        $marcadores = implode(',', array_fill(0, count($ids), '?'));
+        $consulta = $this->pdo->prepare(
+            "SELECT id_localidad, nombre, provincia FROM LOCALIDAD WHERE id_localidad IN ({$marcadores}) ORDER BY nombre ASC"
+        );
+        $consulta->execute(array_map('intval', array_values($ids)));
+        return $consulta->fetchAll();
+    }
 }

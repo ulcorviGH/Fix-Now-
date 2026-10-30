@@ -10,7 +10,15 @@
 // Fase 7: agrega el menú del Administrador y "Mi perfil" del Trabajador.
 // Está en src/ (no en public/) porque es un fragmento, no una página.
 // Las variables llevan sufijo "Nav" para no pisar las de la página que lo incluye.
+//
+// Fase 9 (punto 8, CORRECCIÓN DE FONDO): todo el fragmento corre dentro de una función
+// anónima. Antes, variables como $texto (el nombre de cada ítem del menú del admin) y $p
+// quedaban en el ámbito de la página y PISABAN las de ella: por eso el buscador de
+// "Gestión de usuarios" aparecía lleno con "Estadísticas" (el último ítem del menú) y las
+// búsquedas combinadas no encontraban a nadie. Ahora ninguna variable de la navbar sale de acá.
 // ---------------------------------------------------------------------------
+
+(function () {
 
 $rolNav = Sesion::rolActual();
 $idUsuarioNav = Sesion::idUsuarioActual();
@@ -75,8 +83,11 @@ if ($rolNav === 'admin') {
                     </a>
                 </li>
                 <li class="nav-item"><a class="nav-link" href="chats.php">Chats</a></li>
-                <li class="nav-item"><a class="nav-link" href="mi_perfil.php">Mi perfil</a></li>
-                <!-- Fase 8b (cambio 3.3): "Mis calificaciones" ahora vive dentro de "Mi perfil" -->
+                <?php /* Fase 9 (punto 6): los servicios que este trabajador contrató a otros colegas
+                         (misma pantalla y lógica que "Mis trabajos" del cliente).
+                         Fase 9 (punto 5): se quitó el enlace de texto "Mi perfil": al perfil se
+                         entra desde el avatar y el nombre de arriba a la derecha. */ ?>
+                <li class="nav-item"><a class="nav-link" href="mis_trabajos.php">Mis contrataciones</a></li>
             <?php elseif ($rolNav === 'admin'): ?>
                 <?php
                 // Fase 7: menú del Administrador. Cada ítem muestra un globito rojo si hay algo pendiente.
@@ -138,3 +149,4 @@ if ($rolNav === 'admin') {
         </div>
     <?php endforeach; ?>
 </div>
+<?php })(); // fin del ámbito aislado de la navbar ?>

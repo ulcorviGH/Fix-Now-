@@ -14,6 +14,17 @@ Práctica Profesionalizante 2 — Corvi Ulises.
 | Servidor | Apache, dentro de Docker Compose (3 contenedores) |
 | Control de versiones | Git + GitHub |
 
+## Estado del proyecto
+
+- [x] Fases 1-2: Docker + base de datos (11 tablas)
+- [x] Fase 3: registro e inicio de sesión (CU-01, CU-02)
+- [x] Fase 4: lista por cercanía, buscador y perfil público (CU-03, CU-04)
+- [x] Fase 5: contacto, chat, contratación y finalización (CU-06, CU-08, CU-11, CU-21, CU-22)
+- [x] Fase 6: calificaciones y respuestas (CU-07, CU-12, CU-20)
+- [x] Fase 7: panel del Administrador y "Mi perfil" del Trabajador (CU-09, 10, 13 a 19)
+- [x] Fase 8: seguridad, pulido visual y documentación final (los 22 casos de uso implementados)
+- [x] Fase 8b: refinamientos de diseño y UX — búsqueda por radio con geolocalización, perfil en la barra superior, chat inmersivo, calificaciones dentro de "Mi perfil", trabajador que también puede contratar, login con fondo e ícono de contraseña, filtros del admin
+- [x] **Fase 9:** páginas legales, chat a pantalla completa, mapa interactivo (Leaflet + OpenStreetMap), editar perfil / eliminar cuenta, "Mis contrataciones", oficios múltiples y localidades de Argentina con autocompletado, y corrección del buscador del admin
 
 ## Instalación desde cero (una computadora nueva)
 
@@ -53,8 +64,59 @@ docker compose up -d --build
 | Trabajador | nicolas@fixnow.com | trabajador123 | pendiente de habilitación |
 | Trabajador | ariana@fixnow.com | trabajador123 | pendiente de habilitación |
 
+> Son solo para desarrollo y demostración. **Cambiá o eliminá estas cuentas antes de publicar el sitio.**
 
+## Guía rápida de prueba
 
+1. **Cliente → trabajador:** entrá como `cliente@`, abrí el perfil de Carlos, "Enviar mensaje".
+2. Entrá como `trabajador@` → *Solicitudes* → **Aceptar** el chat. Chateen entre los dos.
+3. Como cliente, en el chat: **Contratar trabajador**. Como trabajador: aceptar en *Solicitudes de trabajo*.
+4. El trabajador pulsa **Marcar trabajo como terminado**; el cliente responde "Sí" a la pregunta
+   que aparece arriba. Recién ahí se habilita **Calificar**.
+5. Como trabajador: *Mis calificaciones* → responder o reportar la reseña.
+6. Como `admin@`: habilitar a Nicolás, moderar la reseña reportada, ver *Estadísticas*.
+7. **Búsqueda por radio:** en *Inicio* mové el slider de km. El navegador te pide la ubicación; si estás
+   lejos de San Carlos o no querés dar permiso, tildá *"Usar mi localidad en vez del GPS"*.
+8. **Trabajador como cliente:** entrá como `trabajador@` → *Inicio* → pedile un servicio a Rocío
+   (sin crear otra cuenta). Un trabajador nunca se ve a sí mismo en las búsquedas.
+9. **Perfil y cierre de sesión:** se entra con la miniatura de arriba a la derecha (*Mi perfil* para el
+   trabajador; *Mi cuenta* para cliente y administrador). "Cerrar sesión" está arriba a la derecha de esa pantalla.
+10. **Cliente → Mi cuenta:** *Editar perfil* (nombre, localidad, contraseña) y las tarjetas de estadísticas.
+11. **Eliminar cuenta** (cliente y trabajador): al final del perfil; pide escribir `ELIMINAR` y la contraseña.
+12. **Registro de trabajador:** elegí varios oficios y buscá localidades escribiendo (ej. "Rosario").
+13. **Mapa:** en *Inicio* el círculo rojo cambia de tamaño al mover el slider; podés arrastrar el marcador.
+    Necesita internet para descargar los mosaicos de OpenStreetMap.
+
+Para probar rápido la pregunta "¿Ya se completó?" poné `DIAS_PRIMERA_PREGUNTA = 0` en
+`src/config/Config.php` (el valor real es 2 días).
+
+## Comandos útiles (parado en la carpeta de `docker-compose.yml`)
+
+| Comando | Para qué |
+|---|---|
+| `docker compose up -d` | Encender (uso diario) |
+| `docker compose up -d --build` | Encender reconstruyendo la imagen (solo si cambió el Dockerfile) |
+| `docker compose stop` | Apagar sin borrar nada |
+| `docker compose logs -f app` | Ver los errores de PHP (en pantalla ya no se muestran) |
+| `docker compose down -v` | **BORRA LA BASE DE DATOS** y empieza de cero |
+
+## Si tenés una base ya creada (actualizar sin borrar)
+
+La **Fase 8b agrega dos columnas** (`USUARIO.latitud` y `USUARIO.longitud`) para la búsqueda por radio.
+Con una base existente es **obligatorio** correr, en phpMyAdmin (pestaña SQL, con la base `fixnow`
+seleccionada), el archivo **`database/migraciones/migracion_geolocalizacion.sql`**. Es seguro correrlo
+más de una vez y además carga coordenadas simuladas a los trabajadores de prueba. Sin ese paso el
+buscador da error. Con una base **nueva** no hace falta: Docker ya ejecuta `01` a `05`.
+
+La **Fase 9 agrega dos tablas** (`OFICIO`, `TRABAJADOR_OFICIO`), un índice único en `LOCALIDAD` y carga
+~1.170 localidades de Argentina. Con una base existente corré, **en este orden** y en phpMyAdmin:
+1. `migracion_geolocalizacion.sql` (solo si todavía no la corriste en la Fase 8b), y
+2. **`migracion_fase9.sql`**. También es repetible sin problema y conserva el oficio de los trabajadores que ya tenías.
+Con una base **nueva** no hace falta: Docker ya ejecuta `01` a `06`.
+
+La Fase 8 no cambió el esquema y solo modificó el Dockerfile (hay que correr una vez
+`docker compose up -d --build`). Los demás scripts de `database/migraciones/` son para bases viejas:
+`fase5_alter.sql`, `fase7_alter.sql`, `fase7b_calificaciones_eliminadas.sql`.
 
 ## Seguridad (resumen)
 
@@ -67,6 +129,8 @@ docker compose up -d --build
 - Errores de PHP a log (no a pantalla); Apache sin versión visible ni listado de carpetas.
 - Límite de mensajes de chat por minuto.
 - La geolocalización del navegador solo se permite para el propio sitio (cabecera `Permissions-Policy`).
+- Eliminar la cuenta propia exige escribir `ELIMINAR` **y** la contraseña, verificadas en el servidor; el administrador no puede borrarse.
+- La barra superior corre en una función aislada para que ninguna de sus variables pise las de la página.
 
 ## Estructura
 
@@ -82,7 +146,7 @@ fixnow/
 │   ├── models/                 # una clase por tabla: SOLO SQL
 │   ├── controllers/            # reglas de negocio y permisos
 │   ├── helpers/                # Sesion, Vista, Archivos, Seguridad
-│   ├── views/                  # navbar.php, boton_logout.php, calificaciones_trabajador.php
+│   ├── views/                  # navbar.php, boton_logout.php, zona_peligro.php, selector_localidades.php, calificaciones_trabajador.php
 │   └── bootstrap.php           # único require de todas las páginas
 └── public/                     # raíz web de Apache
     ├── *.php                   # pantallas (cortas: llaman al controller y dibujan HTML)
@@ -93,6 +157,7 @@ fixnow/
 
 ## Trabajo futuro (fuera del alcance actual)
 
-Mails reales de aviso, notificaciones push, pagos online, geolocalización avanzada (mapas),
+Mapa con los trabajadores dibujados como marcadores, catálogo completo de localidades argentinas (API Georef del INDEC),
+Mails reales de aviso, notificaciones push, pagos online,
 tareas programadas (cron) para las preguntas de finalización, límite de intentos por IP,
 verificación de identidad de trabajadores, y chat en tiempo real con WebSockets.

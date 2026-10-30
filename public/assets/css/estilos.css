@@ -159,7 +159,7 @@ body {
 }
 
 .msg.mio .burbuja {
-    background: var(--fx-primary);
+    background: var(--fx-chat-mio, #0e7c86);   /* Fase 9: azul verdoso (antes rojo de la marca) */
     color: #fff;
 }
 
@@ -331,3 +331,118 @@ body.login-pantalla::after {
     box-shadow: 0 10px 30px rgba(0, 0, 0, .25), 0 2px 8px rgba(0, 0, 0, .12);
 }
 .login-tarjeta.ancha { max-width: 640px; }
+
+/* ==================================================================
+   FASE 9 - Selector de localidades (autocompletado), oficios, zona de cuenta
+   ================================================================== */
+.selector-etiquetas { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .4rem; }
+.selector-etiquetas:empty { display: none; }
+.etiqueta-localidad {
+    display: inline-flex; align-items: center; gap: .35rem;
+    background: var(--fx-primary-soft); color: var(--fx-primary-dark);
+    border-radius: 999px; padding: .2rem .35rem .2rem .7rem; font-size: .85rem; font-weight: 500;
+}
+.etiqueta-quitar {
+    border: 0; background: rgba(0,0,0,.08); color: inherit; width: 1.35rem; height: 1.35rem;
+    border-radius: 50%; line-height: 1; padding: 0; cursor: pointer;
+}
+.etiqueta-quitar:hover { background: rgba(0,0,0,.2); }
+.selector-sugerencias {
+    position: absolute; z-index: 1050; left: 0; right: 0; top: 100%; margin-top: 2px;
+    max-height: 260px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,.15);
+}
+.selector-sugerencias .list-group-item { cursor: pointer; }
+.selector-sugerencias .list-group-item.active { background: var(--fx-primary-soft); color: var(--fx-ink); border-color: var(--fx-border); }
+
+/* Oficios: botones tipo "píldora" con casilla (selección múltiple) */
+.oficios-grid { display: flex; flex-wrap: wrap; gap: .4rem; }
+.oficio-pill {
+    display: inline-flex; align-items: center; gap: .4rem; cursor: pointer;
+    border: 1px solid var(--fx-border); background: #fff; border-radius: 999px;
+    padding: .25rem .75rem; font-size: .85rem; user-select: none;
+}
+.oficio-pill:has(input:checked) { background: var(--fx-primary-soft); border-color: var(--fx-primary); color: var(--fx-primary-dark); font-weight: 600; }
+.oficio-pill input { accent-color: var(--fx-primary); }
+
+/* Cuenta (punto 4): "Cerrar sesión" discreto y zona de peligro */
+.btn-salir { color: #6c757d; border-color: var(--fx-border); background: #fff; font-size: .85rem; }
+.btn-salir:hover { color: var(--fx-primary-dark); border-color: var(--fx-primary); background: var(--fx-primary-soft); }
+.zona-peligro { border: 1px solid #f1c0bb; background: #fff7f6; border-radius: .75rem; padding: 1rem 1.25rem; }
+.tarjeta-estadistica { text-align: center; padding: 1rem .5rem; }
+.tarjeta-estadistica .numero { font-family: 'Sora', sans-serif; font-size: 2rem; font-weight: 700; color: var(--fx-primary-dark); line-height: 1.1; }
+.tarjeta-estadistica .etiqueta { font-size: .8rem; color: #6c757d; }
+
+/* ==================================================================
+   FASE 9 (punto 2) - Chat a PANTALLA COMPLETA (estilo WhatsApp Web / Telegram)
+   La página pasa a ser una columna de alto 100%: barra superior, y el resto
+   (cabecera fija + mensajes con scroll + caja de escritura abajo) ocupa todo.
+   ================================================================== */
+body.chat-pantalla {
+    height: 100vh;
+    height: 100dvh;              /* en celulares descuenta la barra del navegador */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;            /* el único scroll es el de los mensajes */
+    background: #efeae2;
+}
+.chat-fullscreen {
+    flex: 1 1 auto;
+    min-height: 0;               /* imprescindible para que el hijo pueda tener scroll propio */
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+.chat-fullscreen .chat-panel {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: #efeae2;
+}
+/* Cabecera siempre visible arriba (sticky) */
+.chat-fullscreen .chat-cabecera {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    flex: 0 0 auto;
+    padding: .55rem 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+}
+/* Mensajes: ocupan todo el alto disponible */
+.chat-fullscreen .chat-panel .chat-caja {
+    background: #efeae2;
+    padding: 1rem clamp(.75rem, 6vw, 12%);   /* en pantallas anchas deja aire a los costados */
+}
+/* Caja de escritura anclada al borde inferior */
+.chat-fullscreen .chat-pie {
+    flex: 0 0 auto;
+    padding: .6rem clamp(.75rem, 6vw, 12%);
+    background: #f7f5f0;
+}
+.chat-pie .form-control { border-radius: 999px; padding-left: 1rem; }
+.chat-pie .btn { border-radius: 999px; padding-left: 1.2rem; padding-right: 1.2rem; }
+
+/* Burbujas: color azul verdoso profesional para lo enviado, esquinas más suaves con "colita" */
+:root { --fx-chat-mio: #0e7c86; }
+.burbuja { border-radius: 1.1rem; box-shadow: 0 1px 1px rgba(0, 0, 0, .08); }
+.msg.mio .burbuja { background: var(--fx-chat-mio); color: #fff; border-bottom-right-radius: .3rem; }
+.msg.otro .burbuja { background: #fff; color: var(--fx-ink); border-bottom-left-radius: .3rem; }
+
+/* Botón "Contratar trabajador" de la cabecera: contorno verde con ícono (maletín) */
+.btn-icono-contratar { display: inline-flex; align-items: center; gap: .4rem; font-weight: 600; }
+.btn-icono-contratar::before {
+    content: "";
+    width: 1.05em; height: 1.05em;
+    background-color: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='7' width='20' height='14' rx='2'/%3E%3Cpath d='M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2'/%3E%3C/svg%3E") center / contain no-repeat;
+            mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='7' width='20' height='14' rx='2'/%3E%3Cpath d='M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.btn-icono-contratar:hover::before { background-color: #fff; }
+
+/* ==================================================================
+   FASE 9 (punto 3) - Mapa de búsqueda (Leaflet + OpenStreetMap)
+   ================================================================== */
+#mapaBusqueda { height: 280px; border-radius: .6rem; border: 1px solid var(--fx-border); z-index: 0; }
+@media (min-width: 992px) { #mapaBusqueda { height: 320px; } }

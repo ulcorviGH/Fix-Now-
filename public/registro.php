@@ -25,11 +25,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Traemos la lista de localidades para llenar los <select> del formulario.
-// Se pide siempre (haya habido error o no) porque el formulario se vuelve
-// a mostrar si algo salió mal.
+// Fase 9: ya no se cargan TODAS las localidades en un <select> (son más de mil):
+// se buscan con el autocompletado (api/localidades.php). Acá solo se recuperan las
+// que la persona había elegido, para volver a mostrarlas si el formulario tuvo errores.
 $pdo = Database::getConexion();
-$localidades = (new Localidad($pdo))->listarTodas();
+$modeloLocalidad = new Localidad($pdo);
+$ids = fn($v) => is_array($v) ? array_values(array_filter($v, fn($x) => is_string($x) && ctype_digit($x))) : [];
+$localidadPrincipal = $modeloLocalidad->porIds(is_string($_POST['id_localidad'] ?? null) && ctype_digit($_POST['id_localidad']) ? [(int) $_POST['id_localidad']] : []);
+$zonasElegidas = $modeloLocalidad->porIds($ids($_POST['localidades_trabajo'] ?? []));
+$catalogoOficios = (new Oficio($pdo))->listarTodos();
+$oficiosMarcados = array_map('intval', $ids($_POST['oficios'] ?? []));
+$eraTrabajador = ($_POST['es_trabajador'] ?? '') === 'si';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -102,14 +108,10 @@ $localidades = (new Localidad($pdo))->listarTodas();
 
                 <div class="mb-3">
                     <label class="form-label">Tu localidad</label>
-                    <select class="form-select" name="id_localidad" required>
-                        <option value="" disabled selected>Elegí tu localidad</option>
-                        <?php foreach ($localidades as $localidad): ?>
-                            <option value="<?= $localidad['id_localidad'] ?>">
-                                <?= htmlspecialchars($localidad['nombre']) ?>, <?= htmlspecialchars($localidad['provincia']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                    <?php /* Fase 9: buscador con autocompletado (una sola localidad) */
+                    $selId = 'localidadPrincipal'; $selCampo = 'id_localidad'; $selMax = 1;
+                    $selElegidas = $localidadPrincipal; $selPlaceholder = 'Buscá tu localidad (ej. Rafaela)';
+                    require __DIR__ . '/../src/views/selector_localidades.php'; ?>
                 </div>
 
                 <hr>
@@ -118,11 +120,11 @@ $localidades = (new Localidad($pdo))->listarTodas();
                 <div class="mb-3">
                     <label class="form-label d-block">¿Sos trabajador/a de oficio?</label>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="es_trabajador" id="esTrabajadorNo" value="no" checked>
+                        <input class="form-check-input" type="radio" name="es_trabajador" id="esTrabajadorNo" value="no" <?= $eraTrabajador ? '' : 'checked' ?>>
                         <label class="form-check-label" for="esTrabajadorNo">No, soy cliente</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="es_trabajador" id="esTrabajadorSi" value="si">
+                        <input class="form-check-input" type="radio" name="es_trabajador" id="esTrabajadorSi" value="si" <?= $eraTrabajador ? 'checked' : '' ?>>
                         <label class="form-check-label" for="esTrabajadorSi">Sí, ofrezco servicios</label>
                     </div>
                 </div>
@@ -131,25 +133,37 @@ $localidades = (new Localidad($pdo))->listarTodas();
                      El div empieza oculto con la clase d-none de Bootstrap. -->
                 <div id="camposTrabajador" class="d-none border rounded p-3 bg-light-subtle mb-3">
                     <div class="mb-3">
-                        <label class="form-label">Profesión / Oficio</label>
-                        <input type="text" class="form-control" name="oficio" placeholder="Ej: Plomero, Electricista">
+                        <!-- Fase 9 (punto 7): selección MÚLTIPLE de oficios -->
+                        <label class="form-label">Profesión / Oficios
+                            <span class="text-muted small">(elegí hasta <?= Config::MAX_OFICIOS_POR_TRABAJADOR ?>)</span></label>
+                        <div class="oficios-grid">
+                            <?php foreach ($catalogoOficios as $o): ?>
+                                <label class="oficio-pill">
+                                    <input type="checkbox" name="oficios[]" value="<?= (int) $o['id_oficio'] ?>"
+                                           <?= in_array((int) $o['id_oficio'], $oficiosMarcados, true) ? 'checked' : '' ?>>
+                                    <?= Vista::e($o['nombre']) ?>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
                     </div>
                     <div class="mb-0">
                         <label class="form-label">Localidades / zonas de trabajo</label>
-                        <!-- multiple: permite seleccionar varias opciones (Ctrl+clic) -->
-                        <select class="form-select" name="localidades_trabajo[]" multiple size="4">
-                            <?php foreach ($localidades as $localidad): ?>
-                                <option value="<?= $localidad['id_localidad'] ?>">
-                                    <?= htmlspecialchars($localidad['nombre']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <div class="form-text">Mantené presionado Ctrl (o Cmd en Mac) para elegir varias.</div>
+                        <?php /* Fase 9 (punto 7): buscador con autocompletado de localidades de Argentina */
+                        $selId = 'zonasTrabajo'; $selCampo = 'localidades_trabajo[]'; $selMax = Config::MAX_LOCALIDADES_TRABAJO;
+                        $selElegidas = $zonasElegidas; $selPlaceholder = 'Buscá una localidad y agregala (ej. Rosario)';
+                        require __DIR__ . '/../src/views/selector_localidades.php'; ?>
                     </div>
                 </div>
 
                 <button type="submit" class="btn btn-primary w-100">Aceptar</button>
                 <a href="index.php" class="btn btn-outline-secondary w-100 mt-2">Cancelar</a>
+
+                <!-- Fase 9 (punto 1): enlaces legales (antes no existían en el registro) -->
+                <p class="text-center small text-muted mt-3 mb-0">
+                    Al registrarte aceptás los
+                    <a href="terminos.php" class="text-muted">Términos de servicio</a> y la
+                    <a href="privacidad.php" class="text-muted">Política de privacidad</a>.
+                </p>
             </form>
         <?php endif; ?>
     </div>
@@ -158,5 +172,6 @@ $localidades = (new Localidad($pdo))->listarTodas();
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="assets/js/main.js"></script>
 <script src="assets/js/password.js"></script>
+<script src="assets/js/localidades.js"></script>
 </body>
 </html>

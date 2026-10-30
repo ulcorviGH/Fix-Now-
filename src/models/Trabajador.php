@@ -456,4 +456,29 @@ class Trabajador
         $fila = $consulta->fetch();
         return $fila ?: null;
     }
+
+    // ------------------------------------------------------------------
+    // Fase 9 (punto 7): un trabajador puede tener VARIOS oficios.
+    // ------------------------------------------------------------------
+
+    /** Ids de los oficios del trabajador. */
+    public function idsOficios(int $idTrabajador): array
+    {
+        $consulta = $this->pdo->prepare('SELECT id_oficio FROM TRABAJADOR_OFICIO WHERE id_trabajador = ?');
+        $consulta->execute([$idTrabajador]);
+        return array_map('intval', $consulta->fetchAll(PDO::FETCH_COLUMN));
+    }
+
+    /**
+     * Reemplaza los oficios del trabajador por los indicados (borra los anteriores y
+     * guarda los nuevos). Debe llamarse dentro de una transacción.
+     */
+    public function reemplazarOficios(int $idTrabajador, array $idsOficios): void
+    {
+        $this->pdo->prepare('DELETE FROM TRABAJADOR_OFICIO WHERE id_trabajador = ?')->execute([$idTrabajador]);
+        $consulta = $this->pdo->prepare('INSERT INTO TRABAJADOR_OFICIO (id_trabajador, id_oficio) VALUES (?, ?)');
+        foreach ($idsOficios as $idOficio) {
+            $consulta->execute([$idTrabajador, (int) $idOficio]);
+        }
+    }
 }

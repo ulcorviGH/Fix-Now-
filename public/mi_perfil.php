@@ -82,7 +82,11 @@ $panelCal = CalificacionController::panelDelTrabajador($idUsuario); // Fase 8b: 
 <?php require __DIR__ . '/../src/views/navbar.php'; ?>
 
 <div class="container pb-5" style="max-width: 860px;">
-    <h1 class="h5 mb-3">Mi perfil</h1>
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <h1 class="h5 mb-0">Mi perfil</h1>
+        <!-- Fase 9 (punto 4): "Cerrar sesión" discreto, arriba a la derecha -->
+        <?php require __DIR__ . '/../src/views/boton_logout.php'; ?>
+    </div>
 
 <?php if ($panel === null): ?>
     <div class="alert alert-warning">Tu cuenta de trabajador no está habilitada.</div>
@@ -120,10 +124,19 @@ $panelCal = CalificacionController::panelDelTrabajador($idUsuario); // Fase 8b: 
                         <!-- No editable: viene del registro (CU-09 paso 2) -->
                         <input type="text" class="form-control" value="<?= Vista::e($p['nombre'] . ' ' . $p['apellido']) ?>" disabled>
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Oficio / profesión</label>
-                        <input type="text" name="oficio" class="form-control" maxlength="80" required
-                               value="<?= Vista::e($p['oficio']) ?>">
+                    <div class="col-12">
+                        <!-- Fase 9 (punto 7): selección MÚLTIPLE de oficios (ej. Plomero y Gasista a la vez) -->
+                        <label class="form-label">Oficios / profesiones
+                            <span class="text-muted small">(elegí hasta <?= Config::MAX_OFICIOS_POR_TRABAJADOR ?>)</span></label>
+                        <div class="oficios-grid">
+                            <?php foreach ($panel['oficios'] as $o): ?>
+                                <label class="oficio-pill">
+                                    <input type="checkbox" name="oficios[]" value="<?= (int) $o['id_oficio'] ?>"
+                                           <?= in_array((int) $o['id_oficio'], $panel['ids_oficios'], true) ? 'checked' : '' ?>>
+                                    <?= Vista::e($o['nombre']) ?>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Años de experiencia</label>
@@ -137,16 +150,10 @@ $panelCal = CalificacionController::panelDelTrabajador($idUsuario); // Fase 8b: 
                     </div>
                     <div class="col-12">
                         <label class="form-label">Localidades / zonas de trabajo</label>
-                        <div class="d-flex flex-wrap gap-3">
-                            <?php foreach ($panel['localidades'] as $l): ?>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="localidades[]"
-                                           id="loc<?= (int) $l['id_localidad'] ?>" value="<?= (int) $l['id_localidad'] ?>"
-                                           <?= in_array((int) $l['id_localidad'], $panel['ids_localidades'], true) ? 'checked' : '' ?>>
-                                    <label class="form-check-label" for="loc<?= (int) $l['id_localidad'] ?>"><?= Vista::e($l['nombre']) ?></label>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
+                        <?php /* Fase 9 (punto 7): buscador con autocompletado de localidades de Argentina */
+                        $selId = 'zonasTrabajo'; $selCampo = 'localidades[]'; $selMax = Config::MAX_LOCALIDADES_TRABAJO;
+                        $selElegidas = $panel['localidades_elegidas']; $selPlaceholder = 'Buscá una localidad (ej. Rosario)';
+                        require __DIR__ . '/../src/views/selector_localidades.php'; ?>
                     </div>
                 </div>
 
@@ -258,10 +265,13 @@ $panelCal = CalificacionController::panelDelTrabajador($idUsuario); // Fase 8b: 
 
 <?php endif; ?>
 
-    <!-- Fase 8b (cambio 1.4): "Cerrar sesión" va al final de la vista de perfil -->
-    <?php require __DIR__ . '/../src/views/boton_logout.php'; ?>
+    <!-- Fase 9 (punto 4): al final del perfil, la zona de "Eliminar cuenta" (con confirmación estricta) -->
+    <?php require __DIR__ . '/../src/views/zona_peligro.php'; ?>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/localidades.js"></script>
+<script src="assets/js/password.js"></script>
+<script src="assets/js/cuenta.js"></script>
 </body>
 </html>

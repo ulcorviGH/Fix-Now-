@@ -68,6 +68,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <!-- CU-02: formulario de login. method="post" evita que mail/contraseña
              viajen visibles en la URL (a diferencia de method="get"). -->
+        <?php if (($_GET['cuenta_eliminada'] ?? '') === '1'): ?>
+            <div class="alert alert-info small">Tu cuenta fue eliminada. ¡Gracias por haber usado FixNow!</div>
+        <?php endif; ?>
+
         <form method="post" novalidate>
             <?= Vista::campoCsrf() /* Fase 8: token anti-CSRF */ ?>
             <div class="mb-3">
@@ -92,8 +96,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="text-center mt-3">
             <!-- CU-01 excepción 1.1: fuera del alcance del proyecto, son solo
                  enlaces informativos por ahora. -->
-            <a href="#" class="small text-muted me-3">Términos de servicio</a>
-            <a href="#" class="small text-muted">Política de privacidad</a>
+            <a href="terminos.php" class="small text-muted me-3">Términos de servicio</a>
+            <a href="privacidad.php" class="small text-muted">Política de privacidad</a>
         </div>
     </div>
 </div>

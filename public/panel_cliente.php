@@ -20,6 +20,7 @@ Sesion::requerirRoles(['cliente', 'trabajador']);
 
 $idUsuario = Sesion::idUsuarioActual();
 $pdo = Database::getConexion();
+$localidadUsuario = (new Localidad($pdo))->obtenerDeUsuario(Sesion::idUsuarioActual()); // Fase 9: centro del mapa si no hay GPS
 
 $esBusqueda = isset($_GET['buscar']);
 
@@ -43,6 +44,8 @@ if ($esBusqueda) {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>FixNow - Inicio</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Fase 9 (punto 3): Leaflet (mapas) sin API key; los mosaicos vienen de OpenStreetMap -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="assets/css/estilos.css">
     <link rel="icon" type="image/png" href="assets/img/favicon.png">
 </head>
@@ -95,6 +98,17 @@ if ($esBusqueda) {
             <div class="col-md-2">
                 <button type="submit" class="btn btn-primary w-100">Buscar</button>
             </div>
+        </div>
+
+        <!-- Fase 9 (punto 3): mapa interactivo. El círculo muestra el radio de cobertura y se
+             agranda o achica en tiempo real al mover el slider de kilómetros. El marcador se
+             puede arrastrar (o tocar el mapa) para buscar desde otro punto. -->
+        <div class="mt-3">
+            <div id="mapaBusqueda"
+                 data-lat-localidad="<?= $localidadUsuario !== null ? Vista::e((string) $localidadUsuario['latitud']) : '' ?>"
+                 data-lng-localidad="<?= $localidadUsuario !== null ? Vista::e((string) $localidadUsuario['longitud']) : '' ?>"></div>
+            <div class="small text-muted mt-1">Arrastrá el marcador o tocá el mapa para buscar desde otro punto.
+                Mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" class="text-muted">OpenStreetMap</a>.</div>
         </div>
     </form>
 
@@ -159,6 +173,7 @@ if ($esBusqueda) {
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="assets/js/buscar.js"></script>
 </body>
 </html>
